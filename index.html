@@ -96,6 +96,16 @@
             box-shadow: 0 15px 35px rgba(0,0,0,0.7), 0 0 15px rgba(255,159,28,0.1);
         }
 
+        .stat-card {
+            background: linear-gradient(145deg, #181818, #111);
+            border: 1px solid rgba(255, 159, 28, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+        }
+        .stat-card h6 { color: var(--text-muted); font-size: 14px; margin-bottom: 5px; }
+        .stat-card h4 { color: var(--neon-orange); font-weight: 800; margin: 0; text-shadow: 0 0 8px var(--neon-orange-glow); }
+
         .btn-3d {
             border-radius: 10px;
             font-weight: 800;
@@ -117,10 +127,7 @@
             text-shadow: 0 1px 0 rgba(255,255,255,0.4);
             box-shadow: 0 5px 0 #b95c00, 0 5px 20px var(--neon-orange-glow);
         }
-        .btn-pos-action:hover {
-            background: linear-gradient(135deg, #ffb342, #ff9f1c);
-            color: #000;
-        }
+        .btn-pos-action:hover { background: linear-gradient(135deg, #ffb342, #ff9f1c); color: #000; }
 
         .btn-success-3d {
             background: linear-gradient(135deg, #2ec4b6, #208b81);
@@ -174,9 +181,7 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .main-content > div {
-            animation: fadeIn 0.4s ease-in-out;
-        }
+        .main-content > div { animation: fadeIn 0.4s ease-in-out; }
 
         @media print {
             body * { visibility: hidden; }
@@ -211,6 +216,7 @@
     </div>
 
     <div class="main-content">
+        <!-- شاشة البيع -->
         <div id="pos-section">
             <h2 class="mb-4 neon-title"><i class="fas fa-shopping-cart"></i> نقطة البيع - البازرات والاستوكات</h2>
             <div class="pos-grid">
@@ -265,7 +271,15 @@
             </div>
         </div>
 
+        <!-- الفواتير والمرتجعات -->
         <div id="invoices-section" style="display: none;">
+            <div class="row mb-4">
+                <div class="col-md-3"><div class="stat-card"><h6>إجمالي نقدي اليوم</h6><h4 id="statCash">0.00 EGP</h4></div></div>
+                <div class="col-md-3"><div class="stat-card"><h6>إجمالي فيزا اليوم</h6><h4 id="statVisa">0.00 EGP</h4></div></div>
+                <div class="col-md-3"><div class="stat-card"><h6>إجمالي محفظة اليوم</h6><h4 id="statWallet">0.00 EGP</h4></div></div>
+                <div class="col-md-3"><div class="stat-card"><h6>إجمالي إنستا باي اليوم</h6><h4 id="statInsta">0.00 EGP</h4></div></div>
+            </div>
+
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2 class="neon-title"><i class="fas fa-file-invoice"></i> سجل الفواتير والمرتجعات</h2>
                 <button class="btn btn-3d btn-success-3d" onclick="exportTableToExcel('invoicesTable', 'Invoices_Export')"><i class="fas fa-file-excel"></i> إكسبورت</button>
@@ -275,31 +289,38 @@
                     <thead>
                         <tr>
                             <th>رقم الفاتورة</th>
-                            <th>التاريخ</th>
+                            <th>التاريخ والوقت</th>
                             <th>العميل</th>
                             <th>الصافي</th>
                             <th>الحالة</th>
                             <th>الإجراءات</th>
                         </tr>
                     </thead>
-                    <tbody id="invoicesTableBody">
-                        <tr>
-                            <td>INV-1001</td>
-                            <td>2024-05-20</td>
-                            <td>أحمد محمد</td>
-                            <td>500 EGP</td>
-                            <td><span class="badge bg-success">ناجحة</span></td>
-                            <td>
-                                <button class="btn btn-warning btn-sm admin-only" onclick="returnInvoice('INV-1001', 'partial')">مرتجع جزئي</button>
-                                <button class="btn btn-danger btn-sm admin-only" onclick="returnInvoice('INV-1001', 'full')">مرتجع كلي</button>
-                            </td>
-                        </tr>
-                    </tbody>
+                    <tbody id="invoicesTableBody"></tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- الخزينة والمصروفات -->
+        <div id="vault-section" style="display: none;">
+            <h2 class="mb-4 neon-title"><i class="fas fa-vault"></i> الخزينة والمصروفات</h2>
+            <div class="card p-4">
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <select id="vaultType" class="form-select">
+                            <option value="مصروفات">مصروفات (-)</option>
+                            <option value="إيرادات">إيرادات أخرى (+)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4"><input type="number" id="vaultAmount" class="form-control" placeholder="المبلغ"></div>
+                    <div class="col-md-4"><input type="text" id="vaultReason" class="form-control" placeholder="السبب / البيان"></div>
+                </div>
+                <button class="btn btn-3d btn-pos-action w-100" onclick="saveVaultTransaction()">حفظ الحركة في الخزينة</button>
             </div>
         </div>
     </div>
 
+    <!-- نافذة الدفع -->
     <div class="modal fade" id="paymentModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content" style="background-color: var(--bg-card); border: 1px solid var(--neon-orange); color: #fff;">
@@ -325,6 +346,7 @@
         </div>
     </div>
 
+    <!-- منطقة الطباعة -->
     <div id="print-area">
         <div class="print-header">
             <h3>CAYAN STOCKS</h3>
@@ -350,7 +372,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <script>
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzFgQBh8uJ-RZNegq5hwqhqDJ3oAAjdNJOC79W0VnBVrfhROo5eyVAodiqXcWgo6PZe/exec";
+        const GOOGLE_SCRIPT_URL = "ضع_رابط_الويب_أب_هنا";
         
         let currentRole = localStorage.getItem('kayan_role');
         let currentUser = localStorage.getItem('kayan_user');
@@ -366,23 +388,28 @@
         }
 
         let productsDB = [];
+        let invoicesDB = [];
+        let cart = [];
 
-        function loadProducts() {
+        function loadData() {
             fetch(GOOGLE_SCRIPT_URL + "?action=getItems")
             .then(res => res.json())
-            .then(data => {
+            .then(data => { if(Array.isArray(data)) productsDB = data; })
+            .catch(err => console.log("خطأ في جلب الأصناف:", err));
+
+            fetch(GOOGLE_SCRIPT_URL + "?action=getInvoices")
+            .then(res => res.json())
+            .then(data => { 
                 if(Array.isArray(data)) {
-                    productsDB = data;
+                    invoicesDB = data;
+                    renderInvoices();
+                    calculateDailyStats();
                 }
             })
-            .catch(err => console.log("خطأ في جلب الأصناف:", err));
+            .catch(err => console.log("خطأ في جلب الفواتير:", err));
         }
 
-        window.onload = function() {
-            loadProducts();
-        };
-
-        let cart = [];
+        window.onload = function() { loadData(); };
 
         function logout() {
             localStorage.removeItem('kayan_role');
@@ -393,6 +420,7 @@
         function showSection(sectionId) {
             document.getElementById('pos-section').style.display = 'none';
             document.getElementById('invoices-section').style.display = 'none';
+            document.getElementById('vault-section').style.display = 'none';
             let target = document.getElementById(sectionId + '-section');
             if(target) target.style.display = 'block';
         }
@@ -406,7 +434,7 @@
                     if(product.type === 'weight') {
                         Swal.fire({
                             title: `أدخل الوزن بالجرام لـ ${product.name}`,
-                            text: 'مثال: 2048 أو 120 (سيتم التحويل والحساب بالكيلو تلقائياً)',
+                            text: `المتبقي في المخزون: ${product.stock} كجم`,
                             input: 'number',
                             inputAttributes: { step: '1', min: '1' },
                             showCancelButton: true,
@@ -418,33 +446,35 @@
                             if (result.isConfirmed && result.value > 0) {
                                 let weightInGrams = parseFloat(result.value);
                                 let weightInKg = weightInGrams / 1000;
-                                addToCart(product, weightInKg, weightInGrams);
+                                addCartItem(product, weightInKg, weightInGrams);
                             }
                         });
                     } else {
-                        addToCart(product, 1, 1);
+                        Swal.fire({
+                            title: `إضافة صنف: ${product.name}`,
+                            text: `المتبقي في المخزون: ${product.stock} قطعة`,
+                            icon: 'info',
+                            showCancelButton: true,
+                            confirmButtonText: 'إضافة قطعة',
+                            cancelButtonText: 'إلغاء',
+                            background: '#141414',
+                            color: '#fff'
+                        }).then((res) => {
+                            if(res.isConfirmed) {
+                                addCartItem(product, 1, 1);
+                            }
+                        });
                     }
                 } else {
-                    Swal.fire({
-                        title: 'خطأ',
-                        text: 'الصنف غير موجود أو لم يتم تحميلة بعد',
-                        icon: 'error',
-                        background: '#141414',
-                        color: '#fff'
-                    });
+                    Swal.fire({ title: 'خطأ', text: 'الصنف غير موجود أو لم يتم تحميلة بعد', icon: 'error', background: '#141414', color: '#fff' });
                 }
                 this.value = '';
             }
         });
 
-        function addToCart(product, qty, displayQty) {
-            let existing = cart.find(item => item.code === product.code);
-            if(existing && product.type === 'piece') {
-                existing.qty += qty;
-                existing.displayQty += qty;
-            } else {
-                cart.push({ ...product, qty: qty, displayQty: displayQty || qty });
-            }
+        function addCartItem(product, qty, displayQty) {
+            // إضافة كل صنف لوحده تماماً حتى لو تكرر بناءً على رغبتك
+            cart.push({ ...product, qty: qty, displayQty: displayQty });
             renderCart();
         }
 
@@ -458,17 +488,14 @@
             tbody.innerHTML = '';
             cart.forEach((item, index) => {
                 let total = item.price * item.qty;
-                let qtyDisplayVal = item.type === 'piece' ? item.qty : item.displayQty;
-                let stepVal = item.type === 'piece' ? '1' : '1';
-
                 tbody.innerHTML += `
                     <tr>
-                        <td>${item.name}</td>
+                        <td>${item.name} <br><small class="text-muted">متبقي بالمخزون: ${item.stock}</small></td>
                         <td>${item.type === 'piece' ? 'قطعة' : 'وزن (جرام)'}</td>
                         <td>
                             <div class="d-flex align-items-center justify-content-center gap-1">
-                                <input type="number" class="form-control form-control-sm text-center" style="width:90px" value="${qtyDisplayVal}" min="0.1" step="${stepVal}" onchange="updateQty(${index}, this.value, '${item.type}')">
-                                <small class="text-muted">${item.type === 'weight' ? 'جم' : ''}</small>
+                                <input type="number" class="form-control form-control-sm text-center" style="width:90px" value="${item.displayQty}" min="0.1" onchange="updateQty(${index}, this.value, '${item.type}')">
+                                <small class="text-muted">${item.type === 'weight' ? 'جم' : 'قطعة'}</small>
                             </div>
                         </td>
                         <td>${item.price}</td>
@@ -483,13 +510,8 @@
         function updateQty(index, newVal, type) {
             let val = parseFloat(newVal);
             if(val > 0) {
-                if(type === 'weight') {
-                    cart[index].displayQty = val;
-                    cart[index].qty = val / 1000;
-                } else {
-                    cart[index].qty = val;
-                    cart[index].displayQty = val;
-                }
+                cart[index].displayQty = val;
+                cart[index].qty = (type === 'weight') ? (val / 1000) : val;
                 renderCart();
             }
         }
@@ -536,11 +558,7 @@
 
         function checkPaymentStatus() {
             let required = parseFloat(document.getElementById('modalRequiredAmount').innerText) || 0;
-            let cash = parseFloat(document.getElementById('payCash').value) || 0;
-            let visa = parseFloat(document.getElementById('payVisa').value) || 0;
-            let insta = parseFloat(document.getElementById('payInsta').value) || 0;
-            let wallet = parseFloat(document.getElementById('payWallet').value) || 0;
-            let totalPaid = cash + visa + insta + wallet;
+            let totalPaid = Array.from(document.querySelectorAll('.payment-input')).reduce((sum, el) => sum + (parseFloat(el.value) || 0), 0);
             let remaining = required - totalPaid;
             document.getElementById('modalRemaining').innerText = remaining.toFixed(2);
             document.getElementById('confirmPaymentBtn').disabled = (remaining > 0);
@@ -566,7 +584,6 @@
                 wallet: parseFloat(document.getElementById('payWallet').value) || 0
             };
 
-            // تجهيز البيانات لإرسالها لشيت جوجل لتسجيل الفاتورة
             let invoiceData = {
                 action: "saveInvoice",
                 invoiceID: invoiceId,
@@ -584,22 +601,25 @@
                 items: cart
             };
 
-            // إرسال البيانات للسيرفر لتسجيلها في الشيت
             fetch(GOOGLE_SCRIPT_URL, {
                 method: "POST",
-                mode: "no-cors",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
                 body: JSON.stringify(invoiceData)
-            }).catch(err => console.log("خطأ في تسجيل الفاتورة بالسيرفر:", err));
+            })
+            .then(res => res.json())
+            .then(res => {
+                if(res.status === "success") {
+                    Swal.fire({ title: 'تم الحفظ بنجاح', icon: 'success', timer: 1500, showConfirmButton: false, background: '#141414', color: '#fff' });
+                    loadData();
+                }
+            })
+            .catch(err => console.log("خطأ:", err));
 
-            // إعداد بيانات الطباعة
+            // طباعة
             document.getElementById('print-inv-id').innerText = invoiceId;
             document.getElementById('print-date').innerText = `${dateStr} - ${timeStr}`;
             document.getElementById('print-sub').innerText = subTotal;
-            
-            let discVal = document.getElementById('discountInput').value;
-            let discTypeSymbol = discountType === 'percent' ? '%' : 'EGP';
-            document.getElementById('print-disc').innerText = discVal ? `${discVal} ${discTypeSymbol}` : '0';
+            document.getElementById('print-disc').innerText = discountValue;
             document.getElementById('print-net').innerText = netTotal;
 
             let methods = [];
@@ -627,6 +647,99 @@
             document.getElementById('customerPhone').value = '';
             document.getElementById('customerName').value = '';
             document.getElementById('discountInput').value = '';
+        }
+
+        function renderInvoices() {
+            let tbody = document.getElementById('invoicesTableBody');
+            tbody.innerHTML = '';
+            invoicesDB.forEach(inv => {
+                let badgeClass = inv.status === 'Active' ? 'bg-success' : (inv.status === 'FullReturn' ? 'bg-danger' : 'bg-warning text-dark');
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${inv.invoiceID}</td>
+                        <td>${inv.date} - ${inv.time}</td>
+                        <td>${inv.customerName}</td>
+                        <td>${inv.netTotal} EGP</td>
+                        <td><span class="badge ${badgeClass}">${inv.status}</span></td>
+                        <td>
+                            <button class="btn btn-warning btn-sm admin-only" onclick="updateInvoiceStatus('${inv.invoiceID}', 'PartialReturn')">مرتجع جزئي</button>
+                            <button class="btn btn-danger btn-sm admin-only" onclick="updateInvoiceStatus('${inv.invoiceID}', 'FullReturn')">مرتجع كلي</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            if(currentRole === 'Admin' || currentRole === 'admin') {
+                document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'inline-block');
+            }
+        }
+
+        function updateInvoiceStatus(invoiceID, status) {
+            Swal.fire({
+                title: `هل أنت متأكد من تغيير حالة الفاتورة إلى (${status})؟`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'نعم',
+                cancelButtonText: 'إلغاء',
+                background: '#141414',
+                color: '#fff'
+            }).then(result => {
+                if(result.isConfirmed) {
+                    fetch(GOOGLE_SCRIPT_URL, {
+                        method: "POST",
+                        body: JSON.stringify({ action: "updateInvoiceStatus", invoiceID: invoiceID, status: status })
+                    }).then(() => { loadData(); });
+                }
+            });
+        }
+
+        function calculateDailyStats() {
+            let today = new Date().toLocaleDateString('ar-EG');
+            let cash = 0, visa = 0, wallet = 0, insta = 0;
+            
+            invoicesDB.forEach(inv => {
+                if(inv.date === today && inv.status === 'Active') {
+                    try {
+                        let p = JSON.parse(inv.paymentDetails);
+                        cash += p.cash || 0;
+                        visa += p.visa || 0;
+                        wallet += p.wallet || 0;
+                        insta += p.insta || 0;
+                    } catch(e) {}
+                }
+            });
+
+            document.getElementById('statCash').innerText = cash.toFixed(2) + " EGP";
+            document.getElementById('statVisa').innerText = visa.toFixed(2) + " EGP";
+            document.getElementById('statWallet').innerText = wallet.toFixed(2) + " EGP";
+            document.getElementById('statInsta').innerText = insta.toFixed(2) + " EGP";
+        }
+
+        function saveVaultTransaction() {
+            let type = document.getElementById('vaultType').value;
+            let amount = parseFloat(document.getElementById('vaultAmount').value);
+            let reason = document.getElementById('vaultReason').value;
+
+            if(!amount || !reason) return Swal.fire({ title: 'خطأ', text: 'يرجى إدخال المبلغ والسبب', icon: 'error', background: '#141414', color: '#fff' });
+
+            let now = new Date();
+            let data = {
+                action: "saveVault",
+                date: now.toLocaleDateString('ar-EG'),
+                time: now.toLocaleTimeString('ar-EG'),
+                type: type,
+                amount: amount,
+                reason: reason,
+                cashier: currentUser || "مسؤول"
+            };
+
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify(data)
+            }).then(() => {
+                Swal.fire({ title: 'تم الحفظ بنجاح', icon: 'success', background: '#141414', color: '#fff' });
+                document.getElementById('vaultAmount').value = '';
+                document.getElementById('vaultReason').value = '';
+            });
         }
 
         function exportTableToExcel(tableID, filename = ''){
