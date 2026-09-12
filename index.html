@@ -29,7 +29,6 @@
             overflow-x: hidden; 
         }
 
-        /* Sidebar Styling - Dark & Neon Touch */
         .sidebar { 
             height: 100vh; 
             background-color: var(--bg-sidebar); 
@@ -85,7 +84,6 @@
 
         .main-content { margin-right: 260px; padding: 25px; }
 
-        /* 3D Modern Cards with Neon Borders */
         .card { 
             background-color: var(--bg-card);
             border: 1px solid rgba(255, 159, 28, 0.12);
@@ -98,7 +96,6 @@
             box-shadow: 0 15px 35px rgba(0,0,0,0.7), 0 0 15px rgba(255,159,28,0.1);
         }
 
-        /* 3D Colorful Buttons */
         .btn-3d {
             border-radius: 10px;
             font-weight: 800;
@@ -138,7 +135,6 @@
             box-shadow: 0 5px 0 #6d0c18, 0 5px 20px rgba(231,29,54,0.3);
         }
 
-        /* Inputs & Tables styling */
         .form-control, .form-select {
             background-color: #1a1a1a;
             border: 1px solid rgba(255, 159, 28, 0.2);
@@ -168,14 +164,12 @@
         #print-area { display: none; }
         .admin-only { display: none; }
 
-        /* Neon Header Text */
         .neon-title {
             color: var(--neon-orange);
             font-weight: 900;
             text-shadow: 0 0 12px var(--neon-orange-glow);
         }
 
-        /* Animations */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -205,9 +199,7 @@
 
     <div class="sidebar">
         <div class="sidebar-brand">
-            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iV3VNbnBlVhcxgjEnQtZUzca3d
-
-            <!-- Logo representation fallback / or custom image tag -->" alt="Cayan Logo" onerror="this.src='https://via.placeholder.com/70x70/141414/ff9f1c?text=CS'">
+            <img src="https://via.placeholder.com/70x70/141414/ff9f1c?text=CS" alt="Cayan Logo">
             <h3>CAYAN STOCKS</h3>
         </div>
         <p class="text-center text-muted mb-4 small" id="loggedUserDisplay"></p>
@@ -425,7 +417,7 @@
                         }).then((result) => {
                             if (result.isConfirmed && result.value > 0) {
                                 let weightInGrams = parseFloat(result.value);
-                                let weightInKg = weightInGrams / 1000; // التحويل من جرام إلى كيلو
+                                let weightInKg = weightInGrams / 1000;
                                 addToCart(product, weightInKg, weightInGrams);
                             }
                         });
@@ -468,7 +460,6 @@
                 let total = item.price * item.qty;
                 let qtyDisplayVal = item.type === 'piece' ? item.qty : item.displayQty;
                 let stepVal = item.type === 'piece' ? '1' : '1';
-                let unitLabel = item.type === 'piece' ? 'قطعة' : 'جرام';
 
                 tbody.innerHTML += `
                     <tr>
@@ -494,7 +485,7 @@
             if(val > 0) {
                 if(type === 'weight') {
                     cart[index].displayQty = val;
-                    cart[index].qty = val / 1000; // تخزين القيمة بالكيلو للحسابات
+                    cart[index].qty = val / 1000;
                 } else {
                     cart[index].qty = val;
                     cart[index].displayQty = val;
@@ -557,22 +548,65 @@
 
         function saveAndPrintInvoice() {
             let netTotal = document.getElementById('netTotal').innerText;
+            let subTotal = document.getElementById('subTotal').innerText;
             let invoiceId = 'INV-' + Math.floor(Math.random() * 1000000);
-            
+            let now = new Date();
+            let dateStr = now.toLocaleDateString('ar-EG');
+            let timeStr = now.toLocaleTimeString('ar-EG');
+
+            let customerName = document.getElementById('customerName').value || 'عميل نقدي';
+            let customerPhone = document.getElementById('customerPhone').value || '-';
+            let discountType = document.getElementById('discountType').value;
+            let discountValue = document.getElementById('discountInput').value || '0';
+
+            let paymentDetails = {
+                cash: parseFloat(document.getElementById('payCash').value) || 0,
+                visa: parseFloat(document.getElementById('payVisa').value) || 0,
+                insta: parseFloat(document.getElementById('payInsta').value) || 0,
+                wallet: parseFloat(document.getElementById('payWallet').value) || 0
+            };
+
+            // تجهيز البيانات لإرسالها لشيت جوجل لتسجيل الفاتورة
+            let invoiceData = {
+                action: "saveInvoice",
+                invoiceID: invoiceId,
+                date: dateStr,
+                time: timeStr,
+                customerName: customerName,
+                customerPhone: customerPhone,
+                subTotal: subTotal,
+                discountType: discountType,
+                discountValue: discountValue,
+                netTotal: netTotal,
+                paymentDetails: JSON.stringify(paymentDetails),
+                status: "Active",
+                cashierName: currentUser || "مسؤول",
+                items: cart
+            };
+
+            // إرسال البيانات للسيرفر لتسجيلها في الشيت
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(invoiceData)
+            }).catch(err => console.log("خطأ في تسجيل الفاتورة بالسيرفر:", err));
+
+            // إعداد بيانات الطباعة
             document.getElementById('print-inv-id').innerText = invoiceId;
-            document.getElementById('print-date').innerText = new Date().toLocaleString('ar-EG');
-            document.getElementById('print-sub').innerText = document.getElementById('subTotal').innerText;
+            document.getElementById('print-date').innerText = `${dateStr} - ${timeStr}`;
+            document.getElementById('print-sub').innerText = subTotal;
             
             let discVal = document.getElementById('discountInput').value;
-            let discType = document.getElementById('discountType').value === 'percent' ? '%' : 'EGP';
-            document.getElementById('print-disc').innerText = discVal ? `${discVal} ${discType}` : '0';
+            let discTypeSymbol = discountType === 'percent' ? '%' : 'EGP';
+            document.getElementById('print-disc').innerText = discVal ? `${discVal} ${discTypeSymbol}` : '0';
             document.getElementById('print-net').innerText = netTotal;
 
             let methods = [];
-            if(parseFloat(document.getElementById('payCash').value) > 0) methods.push('نقدي');
-            if(parseFloat(document.getElementById('payVisa').value) > 0) methods.push('فيزا');
-            if(parseFloat(document.getElementById('payInsta').value) > 0) methods.push('إنستا');
-            if(parseFloat(document.getElementById('payWallet').value) > 0) methods.put ? '' : methods.push('محفظة');
+            if(paymentDetails.cash > 0) methods.push('نقدي');
+            if(paymentDetails.visa > 0) methods.push('فيزا');
+            if(paymentDetails.insta > 0) methods.push('إنستا');
+            if(paymentDetails.wallet > 0) methods.push('محفظة');
             document.getElementById('print-methods').innerText = methods.join(' - ');
 
             let printTbody = document.getElementById('print-items');
@@ -583,12 +617,13 @@
             });
 
             document.getElementById('qr-code').innerHTML = '';
-            new QRCode(document.getElementById("qr-code"), { text: "https://t.me/kayan_store", width: 100, height: 100 });
+            new QRCode(document.getElementById("qr-code"), { text: `Invoice: ${invoiceId} - Net: ${netTotal}`, width: 100, height: 100 });
             
             paymentModal.hide();
             window.print();
 
-            cart = []; renderCart();
+            cart = []; 
+            renderCart();
             document.getElementById('customerPhone').value = '';
             document.getElementById('customerName').value = '';
             document.getElementById('discountInput').value = '';
