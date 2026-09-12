@@ -207,10 +207,22 @@
             document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
         }
 
-        const productsDB = [
-            { code: "1001", name: "تيشيرت قطن", type: "piece", price: 200 },
-            { code: "1002", name: "بنطلون جينز", type: "piece", price: 350 },
-            { code: "2001", name: "قماش بالكيلو", type: "weight", price: 150 }
+        let productsDB = [];
+
+        // جلب الأصناف من شيت Items تلقائياً عند فتح الصفحة
+        function loadProducts() {
+            fetch(GOOGLE_SCRIPT_URL + "?action=getItems")
+            .then(res => res.json())
+            .then(data => {
+                productsDB = data;
+            })
+            .catch(err => console.log("خطأ في جلب الأصناف:", err));
+        }
+
+        // استدعاء الدالة أول ما الصفحة تحمل
+        window.onload = function() {
+            loadProducts();
+        
         ];
 
         let cart = [];
