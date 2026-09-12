@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kayan Store - كيان ستور</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-dark: #1a252f; --primary: #2c3e50; --secondary: #18bc9c;
+            --danger: #e74c3c; --success: #2ecc71; --warning: #f39c12; --light-bg: #f8f9fa;
+        }
+        body { font-family: 'Cairo', sans-serif; background-color: var(--light-bg); overflow-x: hidden; }
+        .sidebar { height: 100vh; background-color: var(--primary-dark); color: white; padding-top: 20px; position: fixed; width: 250px; transition: 0.3s; z-index: 1000; }
+        .sidebar a { color: #bdc3c7; text-decoration: none; padding: 15px 20px; display: block; font-weight: 600; transition: 0.3s; }
+        .sidebar a:hover, .sidebar a.active { background-color: var(--secondary); color: white; }
+        .main-content { margin-right: 250px; padding: 20px; }
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .btn-custom { border-radius: 8px; font-weight: 600; padding: 10px 20px; }
+        .btn-pos { background-color: var(--secondary); color: white; }
+        .btn-pos:hover { background-color: #128f76; color: white; }
+        .pos-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        .table-pos th { background-color: var(--primary); color: white; }
+        #print-area { display: none; }
+        
+        @media print {
+            body * { visibility: hidden; }
+            .sidebar, .main-content, .modal { display: none !important; }
+            #print-area, #print-area * { visibility: visible; }
+            #print-area {
+                display: block; position: absolute; left: 0; top: 0; width: 80mm;
+                margin: 0; padding: 10px; font-size: 12px; font-family: 'Cairo', sans-serif;
+            }
+            .print-header { text-align: center; border-bottom: 1px dashed #000; margin-bottom: 10px; padding-bottom: 10px; }
+            .print-table { width: 100%; text-align: center; margin-bottom: 10px; }
+            .print-table th, .print-table td { border-bottom: 1px dashed #eee; padding: 5px 0; }
+            .print-footer { text-align: center; border-top: 1px dashed #000; margin-top: 10px; padding-top: 10px; }
+            #qr-code { display: flex; justify-content: center; margin-top: 10px; }
+        }
+        .admin-only { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h3 class="text-center text-white mb-4"><i class="fas fa-store"></i> كيان ستور</h3>
+        <p class="text-center text-secondary mb-4" id="loggedUserDisplay"></p>
+        <a href="#" class="active" onclick="showSection('pos')"><i class="fas fa-desktop"></i> شاشة البيع (POS)</a>
+        <a href="#" onclick="showSection('invoices')"><i class="fas fa-file-invoice-dollar"></i> الفواتير و المرتجعات</a>
+        <a href="#" class="admin-only" onclick="showSection('vault')"><i class="fas fa-vault"></i> الخزينة والمصروفات</a>
+        <a href="#" onclick="exportTableToExcel('invoicesTable', 'Kayan_Invoices')"><i class="fas fa-file-excel"></i> تصدير إكسيل</a>
+        <a href="#" onclick="logout()" class="text-danger mt-5"><i class="fas fa-sign-out-alt"></i> تسجيل خروج</a>
+    </div>
+
+    <div class="main-content">
+        <div id="pos-section">
+            <h2 class="mb-4 text-primary"><i class="fas fa-shopping-cart"></i> نقطة البيع</h2>
+            <div class="pos-grid">
+                <div class="card p-3">
+                    <div class="input-group mb-3">
+                        <span class="input-group-text bg-primary text-white"><i class="fas fa-barcode"></i></span>
+                        <input type="text" class="form-control form-control-lg" id="barcodeInput" placeholder="اسكان الباركود هنا (اضغط Enter)" autofocus>
+                    </div>
+                    <div class="table-responsive" style="height: 400px; overflow-y: auto;">
+                        <table class="table table-hover table-pos text-center">
+                            <thead>
+                                <tr>
+                                    <th>الصنف</th>
+                                    <th>النوع</th>
+                                    <th>الكمية/الوزن</th>
+                                    <th>السعر</th>
+                                    <th>الإجمالي</th>
+                                    <th>حذف</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cartTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card p-3 bg-light">
+                    <h5 class="border-bottom pb-2">بيانات الفاتورة</h5>
+                    <div class="mb-2"><input type="text" id="customerPhone" class="form-control" placeholder="رقم موبايل العميل"></div>
+                    <div class="mb-3"><input type="text" id="customerName" class="form-control" placeholder="اسم العميل"></div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-2 fs-5"><span>الإجمالي:</span><span id="subTotal" class="fw-bold">0.00</span></div>
+                    
+                    <div class="row mb-2">
+                        <div class="col-6">
+                            <select id="discountType" class="form-select form-select-sm" onchange="calculateTotals()">
+                                <option value="percent">خصم %</option>
+                                <option value="value">خصم مبلغ</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <input type="number" id="discountInput" class="form-control form-control-sm" placeholder="الخصم" onkeyup="calculateTotals()">
+                            <small class="text-danger" id="discountError" style="display:none; font-size: 11px;">الحد الأقصى 5%</small>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-3 fs-4 text-success fw-bold border-top pt-2"><span>الصافي:</span><span id="netTotal">0.00</span></div>
+                    <button class="btn btn-pos w-100 btn-lg shadow" onclick="openPaymentModal()"><i class="fas fa-money-bill-wave"></i> دفع و طباعة (F2)</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="invoices-section" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="text-primary"><i class="fas fa-file-invoice"></i> سجل الفواتير والمرتجعات</h2>
+                <button class="btn btn-success" onclick="exportTableToExcel('invoicesTable', 'Invoices_Export')"><i class="fas fa-file-excel"></i> إكسبورت</button>
+            </div>
+            <div class="card p-3">
+                <table class="table table-bordered text-center" id="invoicesTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>رقم الفاتورة</th>
+                            <th>التاريخ</th>
+                            <th>العميل</th>
+                            <th>الصافي</th>
+                            <th>الحالة</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoicesTableBody">
+                        <tr>
+                            <td>INV-1001</td>
+                            <td>2024-05-20</td>
+                            <td>أحمد محمد</td>
+                            <td>500 EGP</td>
+                            <td><span class="badge bg-success">ناجحة</span></td>
+                            <td>
+                                <button class="btn btn-warning btn-sm admin-only" onclick="returnInvoice('INV-1001', 'partial')">مرتجع جزئي</button>
+                                <button class="btn btn-danger btn-sm admin-only" onclick="returnInvoice('INV-1001', 'full')">مرتجع كلي</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="paymentModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">الدفع</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info text-center fs-5">المطلوب: <span id="modalRequiredAmount" class="fw-bold"></span> EGP</div>
+                    <div class="input-group mb-3"><span class="input-group-text w-25">نقدي</span><input type="number" class="form-control payment-input" id="payCash" value="0"></div>
+                    <div class="input-group mb-3"><span class="input-group-text w-25 bg-primary text-white">فيزا</span><input type="number" class="form-control payment-input" id="payVisa" value="0"></div>
+                    <div class="input-group mb-3"><span class="input-group-text w-25 bg-success text-white">إنستا باي</span><input type="number" class="form-control payment-input" id="payInsta" value="0"></div>
+                    <div class="input-group mb-3"><span class="input-group-text w-25 bg-warning">محفظة</span><input type="number" class="form-control payment-input" id="payWallet" value="0"></div>
+                    <div class="text-center mt-3">المتبقي: <span id="modalRemaining" class="text-danger fw-bold"></span> EGP</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-success" id="confirmPaymentBtn" onclick="saveAndPrintInvoice()" disabled>حفظ وطباعة</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="print-area">
+        <div class="print-header">
+            <img src="https://via.placeholder.com/80x80?text=Logo" style="max-width: 80px; margin-bottom: 5px;">
+            <h3>كيان ستور</h3>
+            <p>رقم الفاتورة: <span id="print-inv-id"></span><br>التاريخ: <span id="print-date"></span></p>
+        </div>
+        <table class="print-table">
+            <thead><tr><th>الصنف</th><th>كمية</th><th>سعر</th><th>إجمالي</th></tr></thead>
+            <tbody id="print-items"></tbody>
+        </table>
+        <div class="print-footer">
+            <p>الإجمالي: <span id="print-sub"></span></p>
+            <p>الخصم: <span id="print-disc"></span></p>
+            <h4>الصافي: <span id="print-net"></span></h4>
+            <p style="font-size: 10px; margin-top: 5px;">طرق الدفع: <span id="print-methods"></span></p>
+            <div id="qr-code"></div>
+            <p style="font-size: 10px; margin-top:10px;">شكراً لزيارتكم كيان ستور!</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <script>
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzFgQBh8uJ-RZNegq5hwqhqDJ3oAAjdNJOC79W0VnBVrfhROo5eyVAodiqXcWgo6PZe/exec";
+        
+        let currentRole = localStorage.getItem('kayan_role');
+        let currentUser = localStorage.getItem('kayan_user');
+
+        // شرط حماية الصفحة (تم تعديله ليكون أكثر دقة ولا يطردك بالخطأ)
+        if(!currentRole || currentRole === 'null' || currentRole === 'undefined' || currentRole.trim() === '') {
+            window.location.replace("./login.html");
+        }
+
+        document.getElementById('loggedUserDisplay').innerText = `مرحباً، ${currentUser}`;
+
+        if(currentRole === 'Admin' || currentRole === 'admin') {
+            document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
+        }
+
+        const productsDB = [
+            { code: "1001", name: "تيشيرت قطن", type: "piece", price: 200 },
+            { code: "1002", name: "بنطلون جينز", type: "piece", price: 350 },
+            { code: "2001", name: "قماش بالكيلو", type: "weight", price: 150 }
+        ];
+
+        let cart = [];
+
+        function logout() {
+            localStorage.removeItem('kayan_role');
+            localStorage.removeItem('kayan_user');
+            window.location.replace("./login.html");
+        }
+
+        function showSection(sectionId) {
+            document.getElementById('pos-section').style.display = 'none';
+            document.getElementById('invoices-section').style.display = 'none';
+            document.getElementById(sectionId + '-section').style.display = 'block';
+        }
+
+        document.getElementById('barcodeInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                let code = this.value;
+                let product = productsDB.find(p => p.code === code);
+                
+                if (product) {
+                    if(product.type === 'weight') {
+                        Swal.fire({
+                            title: `أدخل الوزن لـ ${product.name}`, input: 'number', inputAttributes: { step: '0.01', min: '0.1' },
+                            showCancelButton: true, confirmButtonText: 'إضافة',
+                        }).then((result) => {
+                            if (result.isConfirmed && result.value > 0) addToCart(product, parseFloat(result.value));
+                        });
+                    } else {
+                        addToCart(product, 1);
+                    }
+                } else {
+                    Swal.fire('خطأ', 'الصنف غير موجود', 'error');
+                }
+                this.value = '';
+            }
+        });
+
+        function addToCart(product, qty) {
+            let existing = cart.find(item => item.code === product.code);
+            if(existing && product.type === 'piece') existing.qty += qty;
+            else cart.push({ ...product, qty: qty });
+            renderCart();
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            renderCart();
+        }
+
+        function renderCart() {
+            let tbody = document.getElementById('cartTableBody');
+            tbody.innerHTML = '';
+            cart.forEach((item, index) => {
+                let total = item.price * item.qty;
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td>${item.type === 'piece' ? 'قطعة' : 'وزن'}</td>
+                        <td><input type="number" class="form-control form-control-sm mx-auto" style="width:70px" value="${item.qty}" min="0.1" step="${item.type === 'piece' ? '1' : '0.1'}" onchange="updateQty(${index}, this.value)"></td>
+                        <td>${item.price}</td>
+                        <td>${total.toFixed(2)}</td>
+                        <td><button class="btn btn-danger btn-sm" onclick="removeFromCart(${index})"><i class="fas fa-trash"></i></button></td>
+                    </tr>
+                `;
+            });
+            calculateTotals();
+        }
+
+        function updateQty(index, newQty) {
+            if(newQty > 0) { cart[index].qty = parseFloat(newQty); renderCart(); }
+        }
+
+        function calculateTotals() {
+            let subTotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            document.getElementById('subTotal').innerText = subTotal.toFixed(2);
+
+            let discountType = document.getElementById('discountType').value;
+            let discountInput = parseFloat(document.getElementById('discountInput').value) || 0;
+            let maxDiscountValue = subTotal * 0.05;
+
+            let actualDiscount = 0;
+            let errorEl = document.getElementById('discountError');
+
+            if (discountType === 'percent') {
+                if (discountInput > 5) { errorEl.style.display = 'block'; discountInput = 5; } 
+                else { errorEl.style.display = 'none'; }
+                actualDiscount = subTotal * (discountInput / 100);
+            } else {
+                if (discountInput > maxDiscountValue) { errorEl.style.display = 'block'; actualDiscount = maxDiscountValue; } 
+                else { errorEl.style.display = 'none'; actualDiscount = discountInput; }
+            }
+
+            let netTotal = subTotal - actualDiscount;
+            document.getElementById('netTotal').innerText = netTotal.toFixed(2);
+            document.getElementById('modalRequiredAmount').innerText = netTotal.toFixed(2);
+        }
+
+        const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+
+        function openPaymentModal() {
+            if(cart.length === 0) return Swal.fire('تنبيه', 'الفاتورة فارغة', 'warning');
+            document.querySelectorAll('.payment-input').forEach(el => el.value = '0');
+            document.getElementById('payCash').value = document.getElementById('netTotal').innerText;
+            checkPaymentStatus();
+            paymentModal.show();
+        }
+
+        document.querySelectorAll('.payment-input').forEach(el => {
+            el.addEventListener('keyup', checkPaymentStatus);
+            el.addEventListener('change', checkPaymentStatus);
+        });
+
+        function checkPaymentStatus() {
+            let required = parseFloat(document.getElementById('modalRequiredAmount').innerText);
+            let cash = parseFloat(document.getElementById('payCash').value) || 0;
+            let visa = parseFloat(document.getElementById('payVisa').value) || 0;
+            let insta = parseFloat(document.getElementById('payInsta').value) || 0;
+            let wallet = parseFloat(document.getElementById('payWallet').value) || 0;
+            let totalPaid = cash + visa + insta + wallet;
+            let remaining = required - totalPaid;
+            document.getElementById('modalRemaining').innerText = remaining.toFixed(2);
+            document.getElementById('confirmPaymentBtn').disabled = (remaining > 0);
+        }
+
+        function saveAndPrintInvoice() {
+            let netTotal = document.getElementById('netTotal').innerText;
+            let invoiceId = 'INV-' + Math.floor(Math.random() * 1000000);
+            
+            document.getElementById('print-inv-id').innerText = invoiceId;
+            document.getElementById('print-date').innerText = new Date().toLocaleString('ar-EG');
+            document.getElementById('print-sub').innerText = document.getElementById('subTotal').innerText;
+            
+            let discVal = document.getElementById('discountInput').value;
+            let discType = document.getElementById('discountType').value === 'percent' ? '%' : 'EGP';
+            document.getElementById('print-disc').innerText = discVal ? `${discVal} ${discType}` : '0';
+            document.getElementById('print-net').innerText = netTotal;
+
+            let methods = [];
+            if(parseFloat(document.getElementById('payCash').value) > 0) methods.push('نقدي');
+            if(parseFloat(document.getElementById('payVisa').value) > 0) methods.push('فيزا');
+            if(parseFloat(document.getElementById('payInsta').value) > 0) methods.push('إنستا');
+            if(parseFloat(document.getElementById('payWallet').value) > 0) methods.push('محفظة');
+            document.getElementById('print-methods').innerText = methods.join(' - ');
+
+            let printTbody = document.getElementById('print-items');
+            printTbody.innerHTML = '';
+            cart.forEach(item => {
+                printTbody.innerHTML += `<tr><td>${item.name}</td><td>${item.qty}</td><td>${item.price}</td><td>${(item.price * item.qty).toFixed(2)}</td></tr>`;
+            });
+
+            document.getElementById('qr-code').innerHTML = '';
+            new QRCode(document.getElementById("qr-code"), { text: "https://t.me/kayan_store", width: 100, height: 100 });
+            
+            paymentModal.hide();
+            window.print();
+
+            cart = []; renderCart();
+            document.getElementById('customerPhone').value = '';
+            document.getElementById('customerName').value = '';
+            document.getElementById('discountInput').value = '';
+        }
+
+        function exportTableToExcel(tableID, filename = ''){
+            let table = document.getElementById(tableID);
+            let wb = XLSX.utils.table_to_book(table, {sheet: "Sheet1"});
+            XLSX.writeFile(wb, filename ? filename+'.xlsx' : 'Excel_Export.xlsx');
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'F2') { event.preventDefault(); openPaymentModal(); }
+        });
+    </script>
+</body>
+</html>
