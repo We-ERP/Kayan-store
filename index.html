@@ -196,7 +196,6 @@
         let currentRole = localStorage.getItem('kayan_role');
         let currentUser = localStorage.getItem('kayan_user');
 
-        // شرط حماية الصفحة (تم تعديله ليكون أكثر دقة ولا يطردك بالخطأ)
         if(!currentRole || currentRole === 'null' || currentRole === 'undefined' || currentRole.trim() === '') {
             window.location.replace("./login.html");
         }
@@ -209,7 +208,6 @@
 
         let productsDB = [];
 
-        // جلب الأصناف من شيت Items تلقائياً عند فتح الصفحة
         function loadProducts() {
             fetch(GOOGLE_SCRIPT_URL + "?action=getItems")
             .then(res => res.json())
@@ -219,11 +217,9 @@
             .catch(err => console.log("خطأ في جلب الأصناف:", err));
         }
 
-        // استدعاء الدالة أول ما الصفحة تحمل
         window.onload = function() {
             loadProducts();
-        
-        ];
+        };
 
         let cart = [];
 
@@ -342,7 +338,7 @@
             let cash = parseFloat(document.getElementById('payCash').value) || 0;
             let visa = parseFloat(document.getElementById('payVisa').value) || 0;
             let insta = parseFloat(document.getElementById('payInsta').value) || 0;
-            let wallet = parseFloat(document.getElementById('payWallet').value) || 0;
+            let wallet = parseFloat(document.getElementById('payWallet'].value) || 0;
             let totalPaid = cash + visa + insta + wallet;
             let remaining = required - totalPaid;
             document.getElementById('modalRemaining').innerText = remaining.toFixed(2);
