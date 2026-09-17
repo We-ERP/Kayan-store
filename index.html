@@ -50,6 +50,8 @@
         .pos-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
         #print-area { display: none; }
         .admin-only { display: none; }
+        [data-perm] { display: none; }
+        .sidebar a.active { background: linear-gradient(90deg, rgba(255,159,28,0.15), transparent); border-right: 3px solid var(--neon-orange); }
         .neon-title { color: var(--neon-orange); font-weight: 900; text-shadow: 0 0 12px var(--neon-orange-glow); }
         @media print {
             body * { visibility: hidden; }
@@ -73,10 +75,12 @@
             </div>
         </div>
         <p class="text-center text-muted mb-4 small" id="loggedUserDisplay"></p>
-        <a class="active" onclick="showSection('pos')"><i class="fas fa-desktop"></i> شاشة البيع (POS)</a>
-        <a onclick="showSection('invoices')"><i class="fas fa-file-invoice-dollar"></i> الفواتير و المرتجعات</a>
-        <a class="admin-only" onclick="showSection('vault')"><i class="fas fa-vault"></i> الخزينة والمصروفات</a>
-        <a onclick="exportTableToExcel('invoicesTable', 'Cayan_Invoices')"><i class="fas fa-file-excel"></i> تصدير إكسيل</a>
+        <a class="active" data-perm="pos" onclick="showSection('pos', this)"><i class="fas fa-desktop"></i> شاشة البيع (POS)</a>
+        <a data-perm="invoices" onclick="showSection('invoices', this)"><i class="fas fa-file-invoice-dollar"></i> الفواتير و المرتجعات</a>
+        <a data-perm="invoices" onclick="showSection('returns', this)"><i class="fas fa-undo-alt"></i> طلبات المرتجعات</a>
+        <a data-perm="vault" onclick="showSection('vault', this)"><i class="fas fa-vault"></i> الخزينة والمصروفات</a>
+        <a data-perm="export" onclick="exportTableToExcel('invoicesTable', 'Cayan_Invoices')"><i class="fas fa-file-excel"></i> تصدير إكسيل</a>
+        <a data-perm="users" onclick="showSection('users', this)"><i class="fas fa-users-cog"></i> إدارة المستخدمين</a>
         <a onclick="logout()" class="text-danger mt-5"><i class="fas fa-sign-out-alt"></i> تسجيل خروج</a>
     </div>
 
@@ -88,6 +92,10 @@
                     <div class="input-group mb-3">
                         <span class="input-group-text" style="background-color: #222; border-color: var(--neon-orange); color: var(--neon-orange);"><i class="fas fa-barcode"></i></span>
                         <input type="text" class="form-control form-control-lg" id="barcodeInput" placeholder="اسكان الباركود هنا (اضغط Enter)" autofocus>
+                        <button class="btn" type="button" id="cameraScanBtn" onclick="openCameraScanner()" title="سكان بالكاميرا"
+                                style="background-color: #222; border: 1px solid var(--neon-orange); color: var(--neon-orange);">
+                            <i class="fas fa-camera"></i>
+                        </button>
                     </div>
                     <div class="table-responsive" style="height: 400px; overflow-y: auto;">
                         <table class="table table-hover table-pos text-center">
@@ -187,6 +195,53 @@
                 <button class="btn btn-3d btn-pos-action w-100" onclick="saveVaultTransaction()">حفظ الحركة في الخزينة</button>
             </div>
         </div>
+
+        <div id="returns-section" style="display: none;">
+            <h2 class="mb-4 neon-title"><i class="fas fa-undo-alt"></i> طلبات المرتجعات</h2>
+            <div class="row mb-4">
+                <div class="col-md-4"><div class="stat-card" style="border-color: #f5c518;"><h6><i class="fas fa-hourglass-half"></i> معلقة</h6><h4 id="statReturnsPending" style="color:#f5c518;">0</h4></div></div>
+                <div class="col-md-4"><div class="stat-card" style="border-color: var(--neon-green, #18bc9c);"><h6><i class="fas fa-check-circle"></i> مقبولة</h6><h4 id="statReturnsApproved" style="color: var(--neon-green, #18bc9c);">0</h4></div></div>
+                <div class="col-md-4"><div class="stat-card" style="border-color: var(--danger);"><h6><i class="fas fa-times-circle"></i> مرفوضة</h6><h4 id="statReturnsRejected" style="color: var(--danger);">0</h4></div></div>
+            </div>
+            <div class="card p-4">
+                <table class="table table-bordered table-pos text-center">
+                    <thead>
+                        <tr>
+                            <th>رقم المرتجع</th>
+                            <th>الفاتورة</th>
+                            <th>الأصناف</th>
+                            <th>القيمة</th>
+                            <th>النوع</th>
+                            <th>الكاشير</th>
+                            <th>التاريخ</th>
+                            <th>الحالة</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="returnsTableBody"><tr><td colspan="9" class="text-muted py-4">جاري التحميل...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="users-section" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="neon-title"><i class="fas fa-users-cog"></i> إدارة المستخدمين</h2>
+                <button class="btn btn-3d btn-pos-action" onclick="openAddUserModal()"><i class="fas fa-user-plus"></i> إضافة مستخدم</button>
+            </div>
+            <div class="card p-4">
+                <table class="table table-bordered table-pos text-center">
+                    <thead>
+                        <tr>
+                            <th>اسم المستخدم</th>
+                            <th>الصلاحية الأساسية</th>
+                            <th>الحالة</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody"><tr><td colspan="4" class="text-muted py-4">جاري التحميل...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <div class="modal fade" id="paymentModal" tabindex="-1">
@@ -245,7 +300,105 @@
                 </div>
                 <div class="modal-footer border-top border-secondary">
                     <button type="button" class="btn btn-3d btn-danger-3d" data-bs-dismiss="modal">إلغاء</button>
-                    <button type="button" class="btn btn-3d btn-pos-action" id="confirmReturnBtn" onclick="confirmReturn()" disabled>تأكيد المرتجع</button>
+                    <button type="button" class="btn btn-3d btn-pos-action" id="confirmReturnBtn" onclick="submitReturnRequest()" disabled>إرسال طلب المرتجع</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="scannerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content" style="background-color: var(--bg-card); border: 1px solid var(--neon-orange); color: #fff;">
+                <div class="modal-header" style="background: linear-gradient(135deg, #1f1f1f, #141414); border-bottom: 1px solid rgba(255,159,28,0.2);">
+                    <h5 class="modal-title neon-title"><i class="fas fa-camera"></i> سكان الباركود بالكاميرا</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-3 text-center">
+                    <div id="cameraReader" style="width: 100%;"></div>
+                    <p class="text-muted small mt-3 mb-0" id="scannerHint">وجّه الكاميرا ناحية الباركود، هيتقرا تلقائي.</p>
+                </div>
+                <div class="modal-footer border-top border-secondary">
+                    <button type="button" class="btn btn-3d btn-danger-3d" data-bs-dismiss="modal">إغلاق</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="addUserModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content" style="background-color: var(--bg-card); border: 1px solid var(--neon-orange); color: #fff;">
+                <div class="modal-header" style="background: linear-gradient(135deg, #1f1f1f, #141414); border-bottom: 1px solid rgba(255,159,28,0.2);">
+                    <h5 class="modal-title neon-title">إضافة مستخدم جديد</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label">اسم المستخدم</label>
+                        <input type="text" class="form-control" id="newUserName" placeholder="مثال: m.sayad">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">كلمة المرور</label>
+                        <input type="text" class="form-control" id="newUserPass" placeholder="كلمة مرور مبدئية">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">الصلاحية الأساسية</label>
+                        <select id="newUserRole" class="form-select">
+                            <option value="Cashier">كاشير</option>
+                            <option value="Admin">أدمن</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-secondary">
+                    <button type="button" class="btn btn-3d btn-danger-3d" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-3d btn-pos-action" onclick="saveNewUser()">إضافة</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="permissionsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content" style="background-color: var(--bg-card); border: 1px solid var(--neon-orange); color: #fff;">
+                <div class="modal-header" style="background: linear-gradient(135deg, #1f1f1f, #141414); border-bottom: 1px solid rgba(255,159,28,0.2);">
+                    <h5 class="modal-title neon-title">تعديل صلاحيات المستخدم</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="mb-1">اسم المستخدم</p>
+                    <input type="text" class="form-control mb-1" id="permUserName" disabled>
+                    <p class="text-muted small mb-3">ملاحظة: يجب أن يكون هذا الحساب موجودًا مسبقًا في شيت Users.</p>
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span>تطبيق قالب صلاحيات جاهزة</span>
+                        <div>
+                            <button type="button" class="btn btn-sm btn-outline-light me-1" onclick="applyPermTemplate('admin')">أدمن كامل</button>
+                            <button type="button" class="btn btn-sm btn-outline-light" onclick="applyPermTemplate('cashier')">كاشير أساسي</button>
+                        </div>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="permSelectAll" onchange="toggleAllPerms(this.checked)">
+                        <label class="form-check-label" for="permSelectAll">تحديد الكل</label>
+                    </div>
+
+                    <label class="form-label">صلاحيات الوصول للأقسام</label>
+                    <div class="row">
+                        <div class="col-6 mb-2"><div class="form-check"><input class="form-check-input perm-check" type="checkbox" value="pos" id="perm_pos"><label class="form-check-label" for="perm_pos">شاشة البيع (POS)</label></div></div>
+                        <div class="col-6 mb-2"><div class="form-check"><input class="form-check-input perm-check" type="checkbox" value="invoices" id="perm_invoices"><label class="form-check-label" for="perm_invoices">الفواتير والمرتجعات</label></div></div>
+                        <div class="col-6 mb-2"><div class="form-check"><input class="form-check-input perm-check" type="checkbox" value="approve_returns" id="perm_approve_returns"><label class="form-check-label" for="perm_approve_returns">الموافقة على المرتجعات</label></div></div>
+                        <div class="col-6 mb-2"><div class="form-check"><input class="form-check-input perm-check" type="checkbox" value="vault" id="perm_vault"><label class="form-check-label" for="perm_vault">الخزينة والمصروفات</label></div></div>
+                        <div class="col-6 mb-2"><div class="form-check"><input class="form-check-input perm-check" type="checkbox" value="export" id="perm_export"><label class="form-check-label" for="perm_export">تصدير إكسيل</label></div></div>
+                        <div class="col-6 mb-2"><div class="form-check"><input class="form-check-input perm-check" type="checkbox" value="users" id="perm_users"><label class="form-check-label" for="perm_users">إدارة المستخدمين</label></div></div>
+                    </div>
+
+                    <div class="form-check form-switch mt-3">
+                        <input class="form-check-input" type="checkbox" id="permUserActive" checked>
+                        <label class="form-check-label" for="permUserActive">الحساب نشط (يقدر يسجل دخول)</label>
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-secondary">
+                    <button type="button" class="btn btn-3d btn-danger-3d" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-3d btn-pos-action" onclick="savePermissions()">حفظ</button>
                 </div>
             </div>
         </div>
@@ -274,12 +427,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
     <script>
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzFgQBh8uJ-RZNegq5hwqhqDJ3oAAjdNJOC79W0VnBVrfhROo5eyVAodiqXcWgo6PZe/exec";
         
         let currentRole = localStorage.getItem('kayan_role');
         let currentUser = localStorage.getItem('kayan_user');
+        let currentPermissions = (localStorage.getItem('kayan_permissions') || '').split(',').map(s => s.trim()).filter(Boolean);
 
         if(!currentRole || currentRole === 'null' || currentRole === 'undefined' || currentRole.trim() === '') {
             window.location.replace("./login.html");
@@ -287,9 +442,19 @@
 
         document.getElementById('loggedUserDisplay').innerText = `مرحباً، ${currentUser || 'مسؤول'}`;
 
-        if((currentRole || '').toLowerCase() === 'admin') {
-            document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
+        // نظام الصلاحيات: لو المستخدم عنده صلاحية "ALL" (أو Role = Admin بدون صلاحيات مسجلة) يشوف كل حاجة
+        function hasPermission(key) {
+            if(currentPermissions.includes('ALL')) return true;
+            if(currentPermissions.length === 0 && (currentRole || '').toLowerCase() === 'admin') return true;
+            return currentPermissions.includes(key);
         }
+
+        function applyPermissions() {
+            document.querySelectorAll('[data-perm]').forEach(el => {
+                el.style.display = hasPermission(el.dataset.perm) ? '' : 'none';
+            });
+        }
+        applyPermissions();
 
         let productsDB = [];
         let invoicesDB = [];
@@ -318,113 +483,191 @@
         function logout() {
             localStorage.removeItem('kayan_role');
             localStorage.removeItem('kayan_user');
+            localStorage.removeItem('kayan_permissions');
             window.location.replace("./login.html");
         }
 
-        function showSection(sectionId) {
-            document.getElementById('pos-section').style.display = 'none';
-            document.getElementById('invoices-section').style.display = 'none';
-            document.getElementById('vault-section').style.display = 'none';
+        function showSection(sectionId, linkEl) {
+            ['pos', 'invoices', 'returns', 'vault', 'users'].forEach(id => {
+                let el = document.getElementById(id + '-section');
+                if(el) el.style.display = 'none';
+            });
             let target = document.getElementById(sectionId + '-section');
             if(target) target.style.display = 'block';
+
+            document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+            if(linkEl) linkEl.classList.add('active');
+
+            if(sectionId === 'returns') loadReturnRequests();
+            if(sectionId === 'users') loadUsersList();
         }
 
-        // ==================== قراءة باركود الميزان (بيع بالوزن) ====================
-        // لو الباركود 13 رقم وبيبدأ بـ 2 من الشمال => باركود ميزان فيه الوزن متسجل جواه
-        // بنقسمه كالتالي (مثال: 2 000000 1 00470 8):
-        //   [0]      = 2      -> علامة إن الصنف بيتباع بالوزن (يخصم من مخزون الوزن)
-        //   [1-6]    = 000000 -> جزء ثابت من الباركود (مش بيدخل في أي حساب)
-        //   [6]      = رقم واحد -> كود/تصنيف البراند، بيتقارن بعمود "الكود" في شيت الأصناف
-        //                          عشان نجيب بيه السعر الحالي للكيلو (مش السعر المطبوع على الملصق القديم)
-        //   [7-11]   = 5 أرقام -> الوزن بالجرام كامل (مثلاً 00470 = 470 جرام = 0.470 كجم)
-        //   [12]     = رقم تحقق (check digit) خاص بمعيار EAN-13، مش بيُستخدم في الحساب
+        // ==================== قراءة باركود "قطعة بالوزن" ====================
+        // لو الباركود 13 رقم وبيبدأ بـ 2 من الشمال => باركود قطعة بتتباع بالوزن
+        // بنقسمه كالتالي (مثال: 2 000000 1 00 470 8):
+        //   [0]        = 2   -> علامة إن ده باركود "قطعة بالوزن"
+        //   [1-5]      = جزء ثابت من الباركود (مش بيدخل في أي حساب)
+        //   [6]        = رقم واحد (السابع من الشمال) -> نوع/تصنيف صنف القطعة، وعلى أساسه
+        //                        بيتحدد السعر من الباك إند (شيت الأصناف، عمود الكود)
+        //   [7-8]      = جزء تاني مش مستخدم في الحساب
+        //   [9-11]     = 3 أرقام -> وزن القطعة بالجرام (دول التلات أرقام اللي قبل آخر رقم من ناحية اليمين)
+        //   [12]       = آخر رقم من ناحية اليمين -> رقم تحقق (check digit)، مش بيُستخدم في الحساب
         // ============================================================================
         function parseWeightBarcode(code) {
             if (!/^2\d{12}$/.test(code)) return null;
             let brandCode = code.charAt(6);
-            let weightInGrams = parseInt(code.substring(7, 12), 10);
+            let weightInGrams = parseInt(code.substring(9, 12), 10);
             let weightInKg = weightInGrams / 1000;
             return { brandCode: brandCode, weightInGrams: weightInGrams, weightInKg: weightInKg };
         }
 
+        // بيحدد نوع الصنف بشكل مرن: أي قيمة معناها وزن (weight / وزن / كجم) تتقرا وزن، وغير كده قطعة
+        function isWeightItem(product) {
+            let t = product && product.type !== null && product.type !== undefined ? product.type.toString().trim().toLowerCase() : '';
+            return t === 'weight' || t === 'وزن' || t === 'كجم' || t === 'kg';
+        }
+
+        function processBarcode(rawCode) {
+            let code = (rawCode || '').toString().trim();
+            if (!code) return;
+
+            let weightBarcode = parseWeightBarcode(code);
+            if (weightBarcode) {
+                // أول محاولة: نلاقي الصنف بتصنيف البراند (الرقم السابع في الباركود)
+                let product = productsDB.find(p => isWeightItem(p) && p.code && p.code.toString().trim() === weightBarcode.brandCode);
+                // لو مفيش تصنيف بهذا الرقم، جرب تاني بمطابقة الباركود الكامل كإنه كود الصنف نفسه (احتياطي)
+                if (!product) {
+                    product = productsDB.find(p => p.code && p.code.toString().trim() === code);
+                }
+                if (product) {
+                    addCartItem(product, weightBarcode.weightInKg, weightBarcode.weightInGrams);
+                    Swal.fire({
+                        title: 'تمت الإضافة',
+                        text: `${product.name} - ${weightBarcode.weightInGrams} جم بسعر ${product.price} EGP/كجم`,
+                        icon: 'success', timer: 1200, showConfirmButton: false,
+                        background: '#141414', color: '#fff'
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'خطأ',
+                        text: `لا يوجد صنف بوزن مسجل بتصنيف رقم (${weightBarcode.brandCode}) في شيت Items. تأكد إن فيه صف كوده "${weightBarcode.brandCode}" ونوعه weight`,
+                        icon: 'error', background: '#141414', color: '#fff'
+                    });
+                }
+                return;
+            }
+            // =========== غير كده: كود عادي (منتج بالقطعة يبدأ بـ 8 أو أي كود يدوي) ===========
+            // بيتقرا بالمطابقة الكاملة زي ما كان في الأصل بالظبط
+            // ================================================================================
+
+            let product = productsDB.find(p => p.code && p.code.toString().trim() === code);
+
+            if (product) {
+                if(isWeightItem(product)) {
+                    Swal.fire({
+                        title: `أدخل الوزن بالجرام لـ ${product.name}`,
+                        text: `المتبقي في المخزون: ${product.stock} كجم`,
+                        input: 'number',
+                        inputAttributes: { step: '1', min: '1' },
+                        showCancelButton: true,
+                        confirmButtonText: 'إضافة',
+                        cancelButtonText: 'إلغاء',
+                        background: '#141414',
+                        color: '#fff'
+                    }).then((result) => {
+                        if (result.isConfirmed && result.value > 0) {
+                            let weightInGrams = parseFloat(result.value);
+                            let weightInKg = weightInGrams / 1000;
+                            addCartItem(product, weightInKg, weightInGrams);
+                        }
+                    });
+                } else {
+                    // الصنف بالقطعة: بنطلب الكمية (عدد القطع) والمتبقي بيتعرض بالقطعة
+                    Swal.fire({
+                        title: `أدخل الكمية لـ ${product.name}`,
+                        text: `المتبقي في المخزون: ${product.stock} قطعة`,
+                        input: 'number',
+                        inputValue: 1,
+                        inputAttributes: { step: '1', min: '1' },
+                        showCancelButton: true,
+                        confirmButtonText: 'إضافة',
+                        cancelButtonText: 'إلغاء',
+                        background: '#141414',
+                        color: '#fff'
+                    }).then((result) => {
+                        if (result.isConfirmed && result.value > 0) {
+                            let qty = parseInt(result.value, 10);
+                            addCartItem(product, qty, qty);
+                        }
+                    });
+                }
+            } else {
+                Swal.fire({ title: 'خطأ', text: 'الصنف غير موجود أو لم يتم تحميلة بعد', icon: 'error', background: '#141414', color: '#fff' });
+            }
+        }
+
         document.getElementById('barcodeInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                let code = this.value.trim();
-                let self = this;
-
-                let weightBarcode = parseWeightBarcode(code);
-                if (weightBarcode) {
-                    // أول محاولة: نلاقي الصنف بتصنيف البراند (الرقم السابع في الباركود)
-                    let product = productsDB.find(p => p.type === 'weight' && p.code && p.code.toString().trim() === weightBarcode.brandCode);
-                    // لو مفيش تصنيف بهذا الرقم، جرب تاني بمطابقة الباركود الكامل كإنه كود الصنف نفسه (احتياطي)
-                    if (!product) {
-                        product = productsDB.find(p => p.code && p.code.toString().trim() === code);
-                    }
-                    if (product) {
-                        addCartItem(product, weightBarcode.weightInKg, weightBarcode.weightInGrams);
-                        Swal.fire({
-                            title: 'تمت الإضافة',
-                            text: `${product.name} - ${weightBarcode.weightInGrams} جم بسعر ${product.price} EGP/كجم`,
-                            icon: 'success', timer: 1200, showConfirmButton: false,
-                            background: '#141414', color: '#fff'
-                        });
-                    } else {
-                        Swal.fire({
-                            title: 'خطأ',
-                            text: `لا يوجد صنف بوزن مسجل بتصنيف رقم (${weightBarcode.brandCode}) في شيت Items. تأكد إن فيه صف كوده "${weightBarcode.brandCode}" ونوعه weight`,
-                            icon: 'error', background: '#141414', color: '#fff'
-                        });
-                    }
-                    self.value = '';
-                    return;
-                }
-                // =========== غير كده: كود عادي (منتج بالقطعة يبدأ بـ 8 أو أي كود يدوي) ===========
-                // بيتقرا بالمطابقة الكاملة زي ما كان في الأصل بالظبط
-                // ================================================================================
-
-                let product = productsDB.find(p => p.code && p.code.toString().trim() === code);
-                
-                if (product) {
-                    if(product.type === 'weight') {
-                        Swal.fire({
-                            title: `أدخل الوزن بالجرام لـ ${product.name}`,
-                            text: `المتبقي في المخزون: ${product.stock} كجم`,
-                            input: 'number',
-                            inputAttributes: { step: '1', min: '1' },
-                            showCancelButton: true,
-                            confirmButtonText: 'إضافة',
-                            cancelButtonText: 'إلغاء',
-                            background: '#141414',
-                            color: '#fff'
-                        }).then((result) => {
-                            if (result.isConfirmed && result.value > 0) {
-                                let weightInGrams = parseFloat(result.value);
-                                let weightInKg = weightInGrams / 1000;
-                                addCartItem(product, weightInKg, weightInGrams);
-                            }
-                        });
-                    } else {
-                        Swal.fire({
-                            title: `إضافة صنف: ${product.name}`,
-                            text: `المتبقي في المخزون: ${product.stock} قطعة`,
-                            icon: 'info',
-                            showCancelButton: true,
-                            confirmButtonText: 'إضافة قطعة',
-                            cancelButtonText: 'إلغاء',
-                            background: '#141414',
-                            color: '#fff'
-                        }).then((res) => {
-                            if(res.isConfirmed) {
-                                addCartItem(product, 1, 1);
-                            }
-                        });
-                    }
-                } else {
-                    Swal.fire({ title: 'خطأ', text: 'الصنف غير موجود أو لم يتم تحميلة بعد', icon: 'error', background: '#141414', color: '#fff' });
-                }
+                processBarcode(this.value);
                 this.value = '';
             }
         });
+
+        // ==================== السكان بالكاميرا ====================
+        let cameraScanner = null;
+
+        function openCameraScanner() {
+            let modalEl = document.getElementById('scannerModal');
+            let modal = new bootstrap.Modal(modalEl);
+
+            modalEl.addEventListener('shown.bs.modal', startCameraScanner, { once: true });
+            modalEl.addEventListener('hidden.bs.modal', stopCameraScanner, { once: true });
+            modal.show();
+        }
+
+        function startCameraScanner() {
+            if (typeof Html5Qrcode === 'undefined') {
+                document.getElementById('scannerHint').innerText = 'مكتبة السكان لم تُحمّل، تأكد من الإنترنت.';
+                return;
+            }
+
+            cameraScanner = new Html5Qrcode("cameraReader");
+            let config = {
+                fps: 10,
+                qrbox: { width: 260, height: 160 },
+                formatsToSupport: [
+                    Html5QrcodeSupportedFormats.EAN_13,
+                    Html5QrcodeSupportedFormats.EAN_8,
+                    Html5QrcodeSupportedFormats.CODE_128,
+                    Html5QrcodeSupportedFormats.CODE_39,
+                    Html5QrcodeSupportedFormats.UPC_A,
+                    Html5QrcodeSupportedFormats.UPC_E,
+                    Html5QrcodeSupportedFormats.QR_CODE
+                ]
+            };
+
+            cameraScanner.start(
+                { facingMode: "environment" },
+                config,
+                function(decodedText) {
+                    // نفس منطق قراءة الباركود اليدوي بالظبط
+                    stopCameraScanner();
+                    let modalInstance = bootstrap.Modal.getInstance(document.getElementById('scannerModal'));
+                    if (modalInstance) modalInstance.hide();
+                    processBarcode(decodedText);
+                },
+                function() { /* تجاهل محاولات القراءة الفاشلة */ }
+            ).catch(function() {
+                document.getElementById('scannerHint').innerText = 'تعذر فتح الكاميرا، تأكد من السماح بالصلاحية وإن الموقع يعمل على HTTPS.';
+            });
+        }
+
+        function stopCameraScanner() {
+            if (!cameraScanner) return;
+            let scanner = cameraScanner;
+            cameraScanner = null;
+            scanner.stop().then(function() { scanner.clear(); }).catch(function() {});
+        }
 
         function addCartItem(product, qty, displayQty) {
             cart.push({ ...product, qty: qty, displayQty: displayQty });
@@ -443,12 +686,12 @@
                 let total = item.price * item.qty;
                 tbody.innerHTML += `
                     <tr>
-                        <td>${item.name} <br><small class="text-muted">متبقي بالمخزون: ${item.stock}</small></td>
-                        <td>${item.type === 'piece' ? 'قطعة' : 'وزن (جرام)'}</td>
+                        <td>${item.name} <br><small class="text-muted">متبقي بالمخزون: ${item.stock} ${isWeightItem(item) ? 'كجم' : 'قطعة'}</small></td>
+                        <td>${isWeightItem(item) ? 'وزن (جرام)' : 'قطعة'}</td>
                         <td>
                             <div class="d-flex align-items-center justify-content-center gap-1">
                                 <input type="number" class="form-control form-control-sm text-center" style="width:90px" value="${item.displayQty}" min="0.1" onchange="updateQty(${index}, this.value, '${item.type}')">
-                                <small class="text-muted">${item.type === 'weight' ? 'جم' : 'قطعة'}</small>
+                                <small class="text-muted">${isWeightItem(item) ? 'جم' : 'قطعة'}</small>
                             </div>
                         </td>
                         <td>${item.price}</td>
@@ -464,7 +707,7 @@
             let val = parseFloat(newVal);
             if(val > 0) {
                 cart[index].displayQty = val;
-                cart[index].qty = (type === 'weight') ? (val / 1000) : val;
+                cart[index].qty = isWeightItem({ type: type }) ? (val / 1000) : val;
                 renderCart();
             }
         }
@@ -588,7 +831,7 @@
             let printTbody = document.getElementById('print-items');
             printTbody.innerHTML = '';
             cart.forEach(item => {
-                let qtyText = item.type === 'weight' ? `${item.displayQty} جم` : item.qty;
+                let qtyText = isWeightItem(item) ? `${item.displayQty} جم` : item.qty;
                 printTbody.innerHTML += `<tr><td>${item.name}</td><td>${qtyText}</td><td>${item.price}</td><td>${(item.price * item.qty).toFixed(2)}</td></tr>`;
             });
 
@@ -612,7 +855,7 @@
                 let badgeClass = inv.status === 'Active' ? 'bg-success' : (inv.status === 'FullReturn' ? 'bg-danger' : 'bg-warning text-dark');
                 let returnBtn = inv.status === 'FullReturn'
                     ? ''
-                    : `<button class="btn btn-danger btn-sm admin-only" onclick="openReturnModal('${inv.invoiceID}')"><i class="fas fa-undo"></i> مرتجع</button>`;
+                    : `<button class="btn btn-danger btn-sm" onclick="openReturnModal('${inv.invoiceID}')"><i class="fas fa-undo"></i> طلب مرتجع</button>`;
                 tbody.innerHTML += `
                     <tr>
                         <td>${inv.invoiceID}</td>
@@ -624,13 +867,9 @@
                     </tr>
                 `;
             });
-            // مقارنة case-insensitive عشان أي اختلاف في حالة الأحرف بالرول (Admin/admin) ميمنعش ظهور الأزرار
-            if((currentRole || '').toLowerCase() === 'admin') {
-                document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'inline-block');
-            }
         }
 
-        // ==================== نظام المرتجعات (يرجّع الكمية فعليًا للمخزون) ====================
+        // ==================== نظام المرتجعات (طلب -> موافقة/رفض -> خصم أو رد المخزون) ====================
         const returnModal = new bootstrap.Modal(document.getElementById('returnModal'));
         let currentReturnInvoice = null;
         let currentReturnItems = [];
@@ -666,8 +905,8 @@
             let tbody = document.getElementById('returnItemsBody');
             tbody.innerHTML = '';
             currentReturnItems.forEach((item, index) => {
-                let maxQty = item.type === 'weight' ? parseFloat(item.displayQty) : parseFloat(item.qty);
-                let unitLabel = item.type === 'weight' ? 'جم' : 'قطعة';
+                let maxQty = isWeightItem(item) ? parseFloat(item.displayQty) : parseFloat(item.qty);
+                let unitLabel = isWeightItem(item) ? 'جم' : 'قطعة';
                 tbody.innerHTML += `
                     <tr>
                         <td><input type="checkbox" class="form-check-input return-check" data-index="${index}" onchange="updateReturnTotal()"></td>
@@ -690,7 +929,7 @@
                 let qtyInput = row.querySelector('.return-qty');
                 let lineValueEl = row.querySelector('.return-line-value');
                 let item = currentReturnItems[index];
-                let maxQty = item.type === 'weight' ? parseFloat(item.displayQty) : parseFloat(item.qty);
+                let maxQty = isWeightItem(item) ? parseFloat(item.displayQty) : parseFloat(item.qty);
 
                 if(chk.checked) {
                     anyChecked = true;
@@ -699,7 +938,7 @@
                     if(qty > maxQty) qty = maxQty;
                     if(qty < 0) qty = 0;
                     qtyInput.value = qty;
-                    let actualQty = item.type === 'weight' ? (qty / 1000) : qty;
+                    let actualQty = isWeightItem(item) ? (qty / 1000) : qty;
                     let lineValue = actualQty * parseFloat(item.price);
                     lineValueEl.innerText = lineValue.toFixed(2);
                     total += lineValue;
@@ -712,7 +951,7 @@
             document.getElementById('confirmReturnBtn').disabled = !anyChecked;
         }
 
-        function confirmReturn() {
+        function submitReturnRequest() {
             let itemsToReturn = [];
             document.querySelectorAll('.return-check').forEach(chk => {
                 if(!chk.checked) return;
@@ -722,7 +961,7 @@
                 let qtyInput = row.querySelector('.return-qty');
                 let displayQty = parseFloat(qtyInput.value) || 0;
                 if(displayQty <= 0) return;
-                let actualQty = item.type === 'weight' ? (displayQty / 1000) : displayQty;
+                let actualQty = isWeightItem(item) ? (displayQty / 1000) : displayQty;
                 itemsToReturn.push({
                     code: item.code, name: item.name, type: item.type,
                     qty: actualQty, displayQty: displayQty, price: item.price
@@ -734,13 +973,13 @@
             // لو كل أصناف الفاتورة اتردت بكامل كميتها الأصلية => مرتجع كلي، غير كده جزئي
             let isFullReturn = currentReturnItems.every(orig => {
                 let matched = itemsToReturn.find(r => r.code === orig.code);
-                let origQty = orig.type === 'weight' ? parseFloat(orig.displayQty) : parseFloat(orig.qty);
+                let origQty = isWeightItem(orig) ? parseFloat(orig.displayQty) : parseFloat(orig.qty);
                 return matched && matched.displayQty >= origQty;
             });
 
             let now = new Date();
             let payload = {
-                action: "processReturn",
+                action: "submitReturn",
                 invoiceID: currentReturnInvoice,
                 date: now.toLocaleDateString('ar-EG'),
                 time: now.toLocaleTimeString('ar-EG'),
@@ -751,7 +990,7 @@
 
             let btn = document.getElementById('confirmReturnBtn');
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التنفيذ...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإرسال...';
 
             fetch(GOOGLE_SCRIPT_URL, {
                 method: "POST",
@@ -760,11 +999,11 @@
             .then(res => res.json())
             .then(res => {
                 if(res.status === "success") {
-                    Swal.fire({ title: 'تم تنفيذ المرتجع', text: 'تم رد الكمية للمخزون وتحديث حالة الفاتورة', icon: 'success', timer: 1800, showConfirmButton: false, background: '#141414', color: '#fff' });
+                    Swal.fire({ title: 'تم إرسال الطلب', text: 'طلب المرتجع بانتظار موافقة المسؤول', icon: 'success', timer: 1800, showConfirmButton: false, background: '#141414', color: '#fff' });
                     returnModal.hide();
-                    loadData();
+                    loadReturnRequests();
                 } else {
-                    Swal.fire({ title: 'خطأ', text: 'حصل خطأ أثناء تنفيذ المرتجع', icon: 'error', background: '#141414', color: '#fff' });
+                    Swal.fire({ title: 'خطأ', text: 'حصل خطأ أثناء إرسال طلب المرتجع', icon: 'error', background: '#141414', color: '#fff' });
                 }
             })
             .catch(() => {
@@ -772,7 +1011,277 @@
             })
             .finally(() => {
                 btn.disabled = false;
-                btn.innerHTML = 'تأكيد المرتجع';
+                btn.innerHTML = 'إرسال طلب المرتجع';
+            });
+        }
+
+        // ==================== شاشة طلبات المرتجعات (موافقة / رفض / مسح) ====================
+        let allReturnRequests = [];
+
+        function loadReturnRequests() {
+            document.getElementById('returnsTableBody').innerHTML = '<tr><td colspan="9" class="text-muted py-4">جاري التحميل...</td></tr>';
+            fetch(GOOGLE_SCRIPT_URL + "?action=getReturns")
+            .then(res => res.json())
+            .then(data => {
+                allReturnRequests = Array.isArray(data) ? data : [];
+                renderReturnRequests();
+            })
+            .catch(() => {
+                document.getElementById('returnsTableBody').innerHTML = '<tr><td colspan="9" class="text-danger py-4">تعذر تحميل طلبات المرتجعات</td></tr>';
+            });
+        }
+
+        function renderReturnRequests() {
+            // تجميع الأصناف اللي ليها نفس رقم المرتجع (returnID) في طلب واحد
+            let groups = {};
+            allReturnRequests.forEach(r => {
+                if(!groups[r.returnID]) {
+                    groups[r.returnID] = { returnID: r.returnID, invoiceID: r.invoiceID, date: r.date, time: r.time, returnType: r.returnType, cashier: r.cashier, status: r.status, items: [], total: 0 };
+                }
+                groups[r.returnID].items.push(r);
+                groups[r.returnID].total += parseFloat(r.value) || 0;
+            });
+            let list = Object.values(groups).sort((a, b) => (b.returnID || '').localeCompare(a.returnID || ''));
+
+            let pendingCount = list.filter(g => g.status === 'Pending').length;
+            let approvedCount = list.filter(g => g.status === 'Approved').length;
+            let rejectedCount = list.filter(g => g.status === 'Rejected').length;
+            document.getElementById('statReturnsPending').innerText = pendingCount;
+            document.getElementById('statReturnsApproved').innerText = approvedCount;
+            document.getElementById('statReturnsRejected').innerText = rejectedCount;
+
+            let canApprove = hasPermission('approve_returns');
+            let tbody = document.getElementById('returnsTableBody');
+            if(list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="text-muted py-4">لا توجد طلبات مرتجعات</td></tr>';
+                return;
+            }
+            tbody.innerHTML = '';
+            list.forEach(g => {
+                let statusBadge = g.status === 'Pending' ? 'bg-warning text-dark' : (g.status === 'Approved' ? 'bg-success' : 'bg-danger');
+                let statusText = g.status === 'Pending' ? 'معلق' : (g.status === 'Approved' ? 'مقبول' : 'مرفوض');
+                let itemsSummary = g.items.map(i => i.name + ' (' + i.displayQty + (isWeightItem(i) ? 'جم' : 'ق') + ')').join('، ');
+                let typeText = g.returnType === 'Full' ? 'كلي' : 'جزئي';
+
+                let actions = '';
+                if(g.status === 'Pending' && canApprove) {
+                    actions += `<button class="btn btn-success btn-sm me-1" onclick="approveReturnRequest('${g.returnID}')" title="موافقة"><i class="fas fa-check"></i></button>`;
+                    actions += `<button class="btn btn-danger btn-sm me-1" onclick="rejectReturnRequest('${g.returnID}')" title="رفض"><i class="fas fa-times"></i></button>`;
+                }
+                if(g.status !== 'Approved' && canApprove) {
+                    actions += `<button class="btn btn-outline-light btn-sm" onclick="deleteReturnRequest('${g.returnID}')" title="مسح"><i class="fas fa-trash"></i></button>`;
+                }
+                if(actions === '') actions = '-';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${g.returnID}</td>
+                        <td>${g.invoiceID}</td>
+                        <td class="text-start" style="max-width:250px;">${itemsSummary}</td>
+                        <td>${g.total.toFixed(2)} EGP</td>
+                        <td>${typeText}</td>
+                        <td>${g.cashier}</td>
+                        <td>${g.date} ${g.time}</td>
+                        <td><span class="badge ${statusBadge}">${statusText}</span></td>
+                        <td>${actions}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function approveReturnRequest(returnID) {
+            Swal.fire({
+                title: 'تأكيد الموافقة على المرتجع؟',
+                text: 'هتترد الكمية للمخزون وتتحدث حالة الفاتورة.',
+                icon: 'question', showCancelButton: true, confirmButtonText: 'موافقة', cancelButtonText: 'إلغاء',
+                background: '#141414', color: '#fff'
+            }).then(result => {
+                if(!result.isConfirmed) return;
+                fetch(GOOGLE_SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "approveReturn", returnID: returnID }) })
+                .then(res => res.json())
+                .then(res => {
+                    if(res.status === 'success') {
+                        Swal.fire({ title: 'تمت الموافقة', icon: 'success', timer: 1500, showConfirmButton: false, background: '#141414', color: '#fff' });
+                        loadReturnRequests();
+                        loadData();
+                    } else {
+                        Swal.fire({ title: 'خطأ', text: 'حصل خطأ أثناء الموافقة', icon: 'error', background: '#141414', color: '#fff' });
+                    }
+                });
+            });
+        }
+
+        function rejectReturnRequest(returnID) {
+            Swal.fire({
+                title: 'تأكيد رفض المرتجع؟', icon: 'warning', showCancelButton: true, confirmButtonText: 'رفض', cancelButtonText: 'إلغاء',
+                background: '#141414', color: '#fff'
+            }).then(result => {
+                if(!result.isConfirmed) return;
+                fetch(GOOGLE_SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "rejectReturn", returnID: returnID }) })
+                .then(res => res.json())
+                .then(() => { loadReturnRequests(); });
+            });
+        }
+
+        function deleteReturnRequest(returnID) {
+            Swal.fire({
+                title: 'مسح الطلب نهائيًا؟', icon: 'warning', showCancelButton: true, confirmButtonText: 'مسح', cancelButtonText: 'إلغاء',
+                background: '#141414', color: '#fff'
+            }).then(result => {
+                if(!result.isConfirmed) return;
+                fetch(GOOGLE_SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "deleteReturn", returnID: returnID }) })
+                .then(res => res.json())
+                .then(() => { loadReturnRequests(); });
+            });
+        }
+
+        // ==================== إدارة المستخدمين والصلاحيات ====================
+        let allUsers = [];
+
+        function loadUsersList() {
+            document.getElementById('usersTableBody').innerHTML = '<tr><td colspan="4" class="text-muted py-4">جاري التحميل...</td></tr>';
+            fetch(GOOGLE_SCRIPT_URL + "?action=getUsers")
+            .then(res => res.json())
+            .then(data => {
+                allUsers = Array.isArray(data) ? data : [];
+                renderUsersList();
+            })
+            .catch(() => {
+                document.getElementById('usersTableBody').innerHTML = '<tr><td colspan="4" class="text-danger py-4">تعذر تحميل المستخدمين</td></tr>';
+            });
+        }
+
+        function renderUsersList() {
+            let tbody = document.getElementById('usersTableBody');
+            if(allUsers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-muted py-4">لا يوجد مستخدمين</td></tr>';
+                return;
+            }
+            tbody.innerHTML = '';
+            allUsers.forEach(u => {
+                let statusBadge = (u.status || 'Active').toLowerCase() === 'active' ? 'bg-success' : 'bg-secondary';
+                let statusText = (u.status || 'Active').toLowerCase() === 'active' ? 'نشط' : 'موقوف';
+                let toggleIcon = (u.status || 'Active').toLowerCase() === 'active' ? 'fa-ban' : 'fa-check-circle';
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${u.username}</td>
+                        <td>${u.role}</td>
+                        <td><span class="badge ${statusBadge}">${statusText}</span></td>
+                        <td>
+                            <button class="btn btn-outline-light btn-sm me-1" onclick="openPermissionsModal('${u.username}')" title="الصلاحيات"><i class="fas fa-key"></i></button>
+                            <button class="btn btn-outline-warning btn-sm me-1" onclick="toggleUserStatus('${u.username}')" title="تفعيل/إيقاف"><i class="fas ${toggleIcon}"></i></button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="deleteUserAccount('${u.username}')" title="حذف"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function openAddUserModal() {
+            document.getElementById('newUserName').value = '';
+            document.getElementById('newUserPass').value = '';
+            document.getElementById('newUserRole').value = 'Cashier';
+            new bootstrap.Modal(document.getElementById('addUserModal')).show();
+        }
+
+        function saveNewUser() {
+            let username = document.getElementById('newUserName').value.trim();
+            let password = document.getElementById('newUserPass').value.trim();
+            let role = document.getElementById('newUserRole').value;
+            if(!username || !password) {
+                Swal.fire({ title: 'خطأ', text: 'اكتب اسم المستخدم وكلمة المرور', icon: 'error', background: '#141414', color: '#fff' });
+                return;
+            }
+            fetch(GOOGLE_SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "addUser", username: username, password: password, role: role }) })
+            .then(res => res.json())
+            .then(res => {
+                if(res.status === 'success') {
+                    bootstrap.Modal.getInstance(document.getElementById('addUserModal')).hide();
+                    Swal.fire({ title: 'تمت الإضافة', icon: 'success', timer: 1200, showConfirmButton: false, background: '#141414', color: '#fff' });
+                    loadUsersList();
+                } else {
+                    Swal.fire({ title: 'خطأ', text: res.message || 'حصل خطأ أثناء إضافة المستخدم', icon: 'error', background: '#141414', color: '#fff' });
+                }
+            });
+        }
+
+        function toggleUserStatus(username) {
+            fetch(GOOGLE_SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "toggleUserStatus", username: username }) })
+            .then(res => res.json())
+            .then(() => { loadUsersList(); });
+        }
+
+        function deleteUserAccount(username) {
+            Swal.fire({
+                title: `مسح المستخدم (${username}) نهائيًا؟`, icon: 'warning', showCancelButton: true, confirmButtonText: 'مسح', cancelButtonText: 'إلغاء',
+                background: '#141414', color: '#fff'
+            }).then(result => {
+                if(!result.isConfirmed) return;
+                fetch(GOOGLE_SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "deleteUser", username: username }) })
+                .then(res => res.json())
+                .then(() => { loadUsersList(); });
+            });
+        }
+
+        let currentPermUsername = null;
+
+        function openPermissionsModal(username) {
+            currentPermUsername = username;
+            let user = allUsers.find(u => u.username === username);
+            document.getElementById('permUserName').value = username;
+            document.querySelectorAll('.perm-check').forEach(c => c.checked = false);
+            document.getElementById('permSelectAll').checked = false;
+            document.getElementById('permUserActive').checked = !user || (user.status || 'Active').toLowerCase() === 'active';
+
+            if(user) {
+                let perms = (user.permissions || '').split(',').map(s => s.trim()).filter(Boolean);
+                if(perms.includes('ALL')) {
+                    document.querySelectorAll('.perm-check').forEach(c => c.checked = true);
+                    document.getElementById('permSelectAll').checked = true;
+                } else {
+                    perms.forEach(p => {
+                        let el = document.getElementById('perm_' + p);
+                        if(el) el.checked = true;
+                    });
+                }
+            }
+            new bootstrap.Modal(document.getElementById('permissionsModal')).show();
+        }
+
+        function toggleAllPerms(checked) {
+            document.querySelectorAll('.perm-check').forEach(c => c.checked = checked);
+        }
+
+        function applyPermTemplate(template) {
+            let allKeys = ['pos', 'invoices', 'approve_returns', 'vault', 'export', 'users'];
+            let cashierKeys = ['pos', 'invoices'];
+            document.querySelectorAll('.perm-check').forEach(c => c.checked = false);
+            let keys = template === 'admin' ? allKeys : cashierKeys;
+            keys.forEach(k => {
+                let el = document.getElementById('perm_' + k);
+                if(el) el.checked = true;
+            });
+            document.getElementById('permSelectAll').checked = (template === 'admin');
+        }
+
+        function savePermissions() {
+            let selected = [];
+            document.querySelectorAll('.perm-check:checked').forEach(c => selected.push(c.value));
+            let status = document.getElementById('permUserActive').checked ? 'Active' : 'Inactive';
+
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "updateUserPermissions", username: currentPermUsername, permissions: selected.join(','), status: status })
+            })
+            .then(res => res.json())
+            .then(res => {
+                if(res.status === 'success') {
+                    bootstrap.Modal.getInstance(document.getElementById('permissionsModal')).hide();
+                    Swal.fire({ title: 'تم الحفظ', icon: 'success', timer: 1200, showConfirmButton: false, background: '#141414', color: '#fff' });
+                    loadUsersList();
+                } else {
+                    Swal.fire({ title: 'خطأ', text: 'حصل خطأ أثناء حفظ الصلاحيات', icon: 'error', background: '#141414', color: '#fff' });
+                }
             });
         }
         // ======================================================================================

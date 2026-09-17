@@ -60,6 +60,7 @@
                     // تنظيف البيانات وحفظها بشكل قاطع
                     localStorage.setItem('kayan_user', String(data.username).trim());
                     localStorage.setItem('kayan_role', String(data.role).trim());
+                    localStorage.setItem('kayan_permissions', String(data.permissions || '').trim());
                     
                     Swal.fire({
                         icon: 'success', title: 'أهلاً بك!', text: 'تم تسجيل الدخول بنجاح', timer: 1000, showConfirmButton: false
