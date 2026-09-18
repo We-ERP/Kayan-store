@@ -202,6 +202,11 @@
         </div>
 
         <div id="invoices-section" style="display: none;">
+            <div class="alert mb-3" id="privacyBanner" style="display:none; background: linear-gradient(135deg, #2a1f00, #1a1400); border: 1px solid var(--neon-orange); color: #ffd79a; border-radius: 12px;">
+                <i class="fas fa-eye-slash"></i>
+                <strong>وضع إخفاء الأرقام مُفعّل حاليًا.</strong>
+                كل المبالغ بتظهر 0.00 لكل المستخدمين. البيانات الحقيقية محفوظة بالكامل وهترجع أول ما المسؤول يقفل الوضع.
+            </div>
             <div class="row mb-4">
                 <div class="col-md-2"><div class="stat-card"><h6>نقدي اليوم</h6><h4 id="statCash">0.00 EGP</h4></div></div>
                 <div class="col-md-2"><div class="stat-card"><h6>فيزا اليوم</h6><h4 id="statVisa">0.00 EGP</h4></div></div>
@@ -218,7 +223,10 @@
 
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2 class="neon-title"><i class="fas fa-file-invoice"></i> سجل الفواتير والمرتجعات</h2>
-                <button class="btn btn-3d btn-success-3d" onclick="exportTableToExcel('invoicesTable', 'Invoices_Export')"><i class="fas fa-file-excel"></i> إكسبورت</button>
+                <div class="d-flex gap-2 flex-wrap">
+                    <button class="btn btn-3d btn-neutral-3d" data-perm="users" id="privacyToggleBtn" onclick="togglePrivacyMode()"><i class="fas fa-eye-slash"></i> إخفاء الأرقام</button>
+                    <button class="btn btn-3d btn-success-3d" onclick="exportTableToExcel('invoicesTable', 'Invoices_Export')"><i class="fas fa-file-excel"></i> إكسبورت</button>
+                </div>
             </div>
             <div class="card p-4">
                 <table class="table table-bordered table-pos text-center" id="invoicesTable">
@@ -762,6 +770,86 @@
         let invoicesDB = [];
         let cart = [];
 
+
+        /* ==================== وضع إخفاء الأرقام (Privacy Mode) ====================
+         * الأدمن بيشغّله من زرار واحد، والقرار بيتحفظ على جوجل شيت في شيت Settings.
+         * يعني بيسري على كل المستخدمين على كل الأجهزة خلال ثواني (عن طريق المزامنة).
+         * وهو شغّال: كل المبالغ والإحصائيات بتظهر 0.00 والفواتير بتتخفي.
+         * أول ما يتقفل: كل البيانات بترجع زي ما هي بالظبط (مفيش أي حاجة بتتمسح).
+         * ========================================================================= */
+        let privacyMode = false;
+
+        function isPrivacyOn() { return privacyMode === true; }
+
+        /** بيرجّع المبلغ كـ 0.00 وهو الوضع شغّال، وبقيمته الحقيقية وهو مقفول */
+        function money(value) {
+            let n = parseFloat(value) || 0;
+            return isPrivacyOn() ? '0.00' : n.toFixed(2);
+        }
+
+        function applyPrivacyUI() {
+            let btn = document.getElementById('privacyToggleBtn');
+            let banner = document.getElementById('privacyBanner');
+
+            if(btn) {
+                btn.innerHTML = isPrivacyOn()
+                    ? '<i class="fas fa-eye"></i> إظهار الأرقام'
+                    : '<i class="fas fa-eye-slash"></i> إخفاء الأرقام';
+                btn.className = isPrivacyOn()
+                    ? 'btn btn-3d btn-success-3d'
+                    : 'btn btn-3d btn-neutral-3d';
+            }
+            if(banner) banner.style.display = isPrivacyOn() ? 'block' : 'none';
+        }
+
+        function togglePrivacyMode() {
+            if(!hasPermission('users')) {
+                Swal.fire({ title: 'غير مسموح', text: 'الصلاحية دي للأدمن فقط', icon: 'error', background: '#141414', color: '#fff' });
+                return;
+            }
+
+            let turningOn = !isPrivacyOn();
+            Swal.fire({
+                title: turningOn ? 'إخفاء كل الأرقام؟' : 'إظهار الأرقام تاني؟',
+                html: turningOn
+                    ? '<div style="line-height:1.9">هتتحوّل كل المبالغ والفواتير لـ <strong>0.00</strong> عند كل المستخدمين.<br><span style="color:#34d9c8">مفيش أي بيانات هتتمسح</span> — أول ما تقفله هيرجع كل حاجة زي ما هي.</div>'
+                    : '<div style="line-height:1.9">هترجع كل الأرقام والفواتير الحقيقية تظهر عند كل المستخدمين.</div>',
+                icon: 'question', showCancelButton: true,
+                confirmButtonText: turningOn ? 'إخفاء' : 'إظهار',
+                cancelButtonText: 'إلغاء',
+                background: '#141414', color: '#fff'
+            }).then(result => {
+                if(!result.isConfirmed) return;
+
+                let btn = document.getElementById('privacyToggleBtn');
+                if(btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التطبيق...'; }
+
+                fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'setPrivacyMode', mode: turningOn ? 'on' : 'off', username: currentUser || '' })
+                })
+                .then(res => res.json())
+                .then(res => {
+                    if(res.status === 'success') {
+                        privacyMode = res.privacyMode === 'on';
+                        applyPrivacyUI();
+                        renderActiveSection();
+                        saveCache();
+                        Swal.fire({
+                            title: privacyMode ? 'تم إخفاء الأرقام' : 'تم إظهار الأرقام',
+                            text: 'التغيير هيوصل لكل المستخدمين خلال ثواني',
+                            icon: 'success', timer: 1600, showConfirmButton: false,
+                            background: '#141414', color: '#fff'
+                        });
+                    } else {
+                        Swal.fire({ title: 'خطأ', text: res.message || 'تعذر تغيير الوضع', icon: 'error', background: '#141414', color: '#fff' });
+                    }
+                })
+                .catch(() => Swal.fire({ title: 'خطأ', text: 'حدث خطأ في الاتصال بالسيرفر', icon: 'error', background: '#141414', color: '#fff' }))
+                .finally(() => { if(btn) btn.disabled = false; applyPrivacyUI(); });
+            });
+        }
+
         // ==================== التحميل والمزامنة اللحظية مع جوجل شيت ====================
         let returnsDB = [];
         let vaultDB = [];
@@ -780,6 +868,48 @@
             }
         }
 
+        const CACHE_KEY = 'kayan_cache_v1';
+
+        /** بنحفظ آخر نسخة من البيانات محليًا عشان الشاشة تفتح فورًا المرة الجاية */
+        function saveCache() {
+            try {
+                localStorage.setItem(CACHE_KEY, JSON.stringify({
+                    items: productsDB, invoices: invoicesDB, returns: returnsDB,
+                    vault: vaultDB, users: allUsers, privacyMode: privacyMode,
+                    savedAt: new Date().getTime()
+                }));
+            } catch(e) { /* لو التخزين مليان بنتجاهل بهدوء */ }
+        }
+
+        /** بنعرض آخر نسخة محفوظة على طول (بدون انتظار السيرفر) ثم نحدّث في الخلفية */
+        function loadFromCache() {
+            try {
+                let raw = localStorage.getItem(CACHE_KEY);
+                if(!raw) return false;
+                let c = JSON.parse(raw);
+                if(!c) return false;
+                productsDB = Array.isArray(c.items) ? c.items : [];
+                invoicesDB = Array.isArray(c.invoices) ? c.invoices : [];
+                returnsDB = Array.isArray(c.returns) ? c.returns : [];
+                vaultDB = Array.isArray(c.vault) ? c.vault : [];
+                allUsers = Array.isArray(c.users) ? c.users : [];
+                privacyMode = c.privacyMode === 'on';
+                applyPrivacyUI();
+                renderInvoices();
+                calculateDailyStats();
+                return true;
+            } catch(e) { return false; }
+        }
+
+        function renderActiveSection() {
+            renderInvoices();
+            calculateDailyStats();
+            if(activeSection === 'items') renderItemsTable();
+            if(activeSection === 'returns') renderReturnRequests();
+            if(activeSection === 'ledger') renderLedger();
+            if(activeSection === 'users') renderUsersList();
+        }
+
         /** تحميل كل البيانات في نداء واحد (أسرع بكتير من 5 نداءات منفصلة) */
         function loadData(silent) {
             if(syncInFlight) return;
@@ -794,14 +924,13 @@
                 if(data && Array.isArray(data.returns)) returnsDB = data.returns;
                 if(data && Array.isArray(data.vault)) vaultDB = data.vault;
                 if(data && Array.isArray(data.users)) allUsers = data.users;
+                if(data && data.settings) {
+                    privacyMode = (data.settings.privacyMode || 'off') === 'on';
+                    applyPrivacyUI();
+                }
 
-                renderInvoices();
-                calculateDailyStats();
-                if(activeSection === 'items') renderItemsTable();
-                if(activeSection === 'returns') renderReturnRequests();
-                if(activeSection === 'ledger') renderLedger();
-                if(activeSection === 'users') renderUsersList();
-
+                renderActiveSection();
+                saveCache();
                 setSyncState('ok');
             })
             .catch(err => {
@@ -824,6 +953,16 @@
                 .then(res => res.json())
                 .then(data => {
                     if(!data || !data.stamp) return;
+
+                    // وضع الإخفاء بيتطبق فورًا من غير ما نحمّل كل البيانات
+                    let serverPrivacy = (data.privacyMode || 'off') === 'on';
+                    if(serverPrivacy !== privacyMode) {
+                        privacyMode = serverPrivacy;
+                        applyPrivacyUI();
+                        renderActiveSection();
+                        saveCache();
+                    }
+
                     if(lastStamp && data.stamp !== lastStamp) {
                         loadData(true);
                     }
@@ -831,7 +970,7 @@
                     setSyncState('ok');
                 })
                 .catch(() => setSyncState('err'));
-            }, 10000);
+            }, 5000);
         }
 
         // أول ما ترجع للتاب تاني، بنحدّث على طول
@@ -840,7 +979,10 @@
         });
 
         window.onload = function() {
-            loadData();
+            // 1) نعرض آخر نسخة محفوظة على طول عشان الشاشة تشتغل من أول ثانية
+            let hadCache = loadFromCache();
+            // 2) وبعدين نحدّث من السيرفر في الخلفية
+            loadData(hadCache);
             startLiveSync();
         };
 
@@ -908,13 +1050,15 @@
                     product = productsDB.find(p => p.code && p.code.toString().trim() === code);
                 }
                 if (product) {
-                    addCartItem(product, weightBarcode.weightInKg, weightBarcode.weightInGrams);
-                    Swal.fire({
-                        title: 'تمت الإضافة',
-                        text: `${product.name} - ${weightBarcode.weightInGrams} جم بسعر ${product.price} EGP/كجم`,
-                        icon: 'success', timer: 1200, showConfirmButton: false,
-                        background: '#141414', color: '#fff'
-                    });
+                    let ok = addCartItem(product, weightBarcode.weightInKg, weightBarcode.weightInGrams);
+                    if (ok) {
+                        Swal.fire({
+                            title: 'تمت الإضافة',
+                            text: `${product.name} - ${weightBarcode.weightInGrams} جم بسعر ${product.price} EGP/كجم`,
+                            icon: 'success', timer: 1200, showConfirmButton: false,
+                            background: '#141414', color: '#fff'
+                        });
+                    }
                 } else {
                     Swal.fire({
                         title: 'خطأ',
@@ -1037,9 +1181,65 @@
             scanner.stop().then(function() { scanner.clear(); }).catch(function() {});
         }
 
+        /* ==================== التحقق من المخزون قبل الإضافة ====================
+         * بنمنع بيع كمية أكبر من المتاح في المخزون.
+         * بنحسب الكمية الموجودة بالفعل في الفاتورة الحالية لنفس الصنف كمان،
+         * عشان لو اتسكن مرتين ميعديش المتاح بالجمع.
+         * وحدة المقارنة: كجم للأصناف بالوزن، وقطعة للأصناف بالقطعة.
+         * ==================================================================== */
+        function getCartQtyForCode(code, exceptIndex) {
+            let target = (code === null || code === undefined) ? '' : code.toString().trim();
+            return cart.reduce((sum, it, idx) => {
+                if(exceptIndex !== undefined && idx === exceptIndex) return sum;
+                let c = (it.code === null || it.code === undefined) ? '' : it.code.toString().trim();
+                return c === target ? sum + (parseFloat(it.qty) || 0) : sum;
+            }, 0);
+        }
+
+        function formatQtyForUser(product, qtyInBaseUnit) {
+            return isWeightItem(product)
+                ? (qtyInBaseUnit * 1000).toFixed(0) + ' جم'
+                : qtyInBaseUnit + ' قطعة';
+        }
+
+        /** بيرجع true لو الكمية مسموح بيها، و false مع رسالة تحذير لو مفيش مخزون كافي */
+        function checkStockAvailable(product, requestedQty, exceptIndex) {
+            let stock = parseFloat(product.stock) || 0;
+            let alreadyInCart = getCartQtyForCode(product.code, exceptIndex);
+            let totalNeeded = alreadyInCart + requestedQty;
+            const EPS = 0.0001;
+
+            if(stock <= 0) {
+                Swal.fire({
+                    title: 'الصنف غير متاح',
+                    html: `<div style="line-height:1.9">الصنف <strong>${product.name}</strong> رصيده في المخزون <strong style="color:#ff6b7d">صفر</strong>.<br>مينفعش يتباع قبل ما يتزوّد رصيده.</div>`,
+                    icon: 'error', background: '#141414', color: '#fff', confirmButtonText: 'تمام'
+                });
+                return false;
+            }
+
+            if(totalNeeded > stock + EPS) {
+                let remaining = stock - alreadyInCart;
+                Swal.fire({
+                    title: 'الكمية أكبر من المخزون',
+                    html: `<div style="line-height:1.9">
+                            الصنف: <strong>${product.name}</strong><br>
+                            المتاح في المخزون: <strong style="color:#34d9c8">${formatQtyForUser(product, stock)}</strong><br>
+                            الموجود في الفاتورة حاليًا: <strong>${formatQtyForUser(product, alreadyInCart)}</strong><br>
+                            أقصى كمية ممكن تضيفها: <strong style="color:var(--neon-orange)">${formatQtyForUser(product, remaining > 0 ? remaining : 0)}</strong>
+                           </div>`,
+                    icon: 'warning', background: '#141414', color: '#fff', confirmButtonText: 'تمام'
+                });
+                return false;
+            }
+            return true;
+        }
+
         function addCartItem(product, qty, displayQty) {
+            if(!checkStockAvailable(product, parseFloat(qty) || 0)) return false;
             cart.push({ ...product, qty: qty, displayQty: displayQty });
             renderCart();
+            return true;
         }
 
         function removeFromCart(index) {
@@ -1073,11 +1273,18 @@
 
         function updateQty(index, newVal, type) {
             let val = parseFloat(newVal);
-            if(val > 0) {
-                cart[index].displayQty = val;
-                cart[index].qty = isWeightItem({ type: type }) ? (val / 1000) : val;
+            if(!(val > 0)) { renderCart(); return; }
+
+            let newQty = isWeightItem({ type: type }) ? (val / 1000) : val;
+            // بنستثني السطر الحالي من الحساب عشان نقارن بالكمية الجديدة مش القديمة
+            if(!checkStockAvailable(cart[index], newQty, index)) {
                 renderCart();
+                return;
             }
+
+            cart[index].displayQty = val;
+            cart[index].qty = newQty;
+            renderCart();
         }
 
         function calculateTotals() {
@@ -1219,6 +1426,13 @@
         function renderInvoices() {
             let tbody = document.getElementById('invoicesTableBody');
             tbody.innerHTML = '';
+
+            // وضع الإخفاء: مفيش فواتير بتتعرض خالص (البيانات نفسها سليمة في الشيت)
+            if(isPrivacyOn()) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-muted py-5"><i class="fas fa-eye-slash"></i> الأرقام مخفية حاليًا بأمر المسؤول</td></tr>';
+                return;
+            }
+
             invoicesDB.forEach(inv => {
                 let badgeClass = inv.status === 'Active' ? 'bg-success' : (inv.status === 'FullReturn' ? 'bg-danger' : 'bg-warning text-dark');
                 let returnBtn = inv.status === 'FullReturn'
@@ -1444,7 +1658,7 @@
                         <td>${g.returnID}</td>
                         <td>${g.invoiceID}</td>
                         <td class="text-start" style="max-width:250px;">${itemsSummary}</td>
-                        <td>${g.total.toFixed(2)} EGP</td>
+                        <td>${money(g.total)} EGP</td>
                         <td>${typeText}</td>
                         <td>${g.cashier}</td>
                         <td>${g.date} ${g.time}</td>
@@ -1898,6 +2112,15 @@
                 .filter(r => r.status === 'Approved' && (document.getElementById('ledgerMethod').value !== 'cash' || (r.paymentMethod || 'cash') === 'cash') && withinLedgerRange(r.date))
                 .reduce((sum, r) => sum + (parseFloat(r.value) || 0), 0);
 
+            if(isPrivacyOn()) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-muted py-5"><i class="fas fa-eye-slash"></i> الأرقام مخفية حاليًا بأمر المسؤول</td></tr>';
+                document.getElementById('ledgerCredit').innerText = '0.00';
+                document.getElementById('ledgerDebit').innerText = '0.00';
+                document.getElementById('ledgerReturns').innerText = '0.00';
+                document.getElementById('ledgerBalance').innerText = '0.00';
+                return;
+            }
+
             if(rows.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="8" class="text-muted py-4">لا توجد حركات في هذه الفترة</td></tr>';
             } else {
@@ -1921,12 +2144,12 @@
                 });
             }
 
-            document.getElementById('ledgerCredit').innerText = totalCredit.toFixed(2);
-            document.getElementById('ledgerDebit').innerText = totalDebit.toFixed(2);
-            document.getElementById('ledgerReturns').innerText = returnsTotal.toFixed(2);
+            document.getElementById('ledgerCredit').innerText = money(totalCredit);
+            document.getElementById('ledgerDebit').innerText = money(totalDebit);
+            document.getElementById('ledgerReturns').innerText = money(returnsTotal);
             let balanceEl = document.getElementById('ledgerBalance');
             let balance = totalCredit - totalDebit;
-            balanceEl.innerText = balance.toFixed(2);
+            balanceEl.innerText = money(balance);
             balanceEl.style.color = balance >= 0 ? '#34d9c8' : '#ff6b7d';
         }
 
@@ -2175,15 +2398,15 @@
                 }
             });
 
-            document.getElementById('statCash').innerText = cash.toFixed(2) + " EGP";
-            document.getElementById('statVisa').innerText = visa.toFixed(2) + " EGP";
-            document.getElementById('statWallet').innerText = wallet.toFixed(2) + " EGP";
-            document.getElementById('statInsta').innerText = insta.toFixed(2) + " EGP";
-            document.getElementById('statShipping').innerText = shipping.toFixed(2) + " EGP";
-            document.getElementById('statTransfer').innerText = transfer.toFixed(2) + " EGP";
-            document.getElementById('statNetToday').innerText = netToday.toFixed(2) + " EGP";
-            document.getElementById('statCountToday').innerText = countToday;
-            document.getElementById('statReturnsToday').innerText = returnsToday.toFixed(2) + " EGP";
+            document.getElementById('statCash').innerText = money(cash) + " EGP";
+            document.getElementById('statVisa').innerText = money(visa) + " EGP";
+            document.getElementById('statWallet').innerText = money(wallet) + " EGP";
+            document.getElementById('statInsta').innerText = money(insta) + " EGP";
+            document.getElementById('statShipping').innerText = money(shipping) + " EGP";
+            document.getElementById('statTransfer').innerText = money(transfer) + " EGP";
+            document.getElementById('statNetToday').innerText = money(netToday) + " EGP";
+            document.getElementById('statCountToday').innerText = isPrivacyOn() ? 0 : countToday;
+            document.getElementById('statReturnsToday').innerText = money(returnsToday) + " EGP";
         }
 
         function saveVaultTransaction() {

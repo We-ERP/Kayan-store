@@ -62,11 +62,8 @@
                     localStorage.setItem('kayan_role', String(data.role).trim());
                     localStorage.setItem('kayan_permissions', String(data.permissions || '').trim());
                     
-                    Swal.fire({
-                        icon: 'success', title: 'أهلاً بك!', text: 'تم تسجيل الدخول بنجاح', timer: 1000, showConfirmButton: false
-                    }).then(() => {
-                        window.location.replace("./index.html"); // استخدام المسار النسبي الآمن
-                    });
+                    // تحويل فوري من غير انتظار - السرعة أهم من مؤثر النجاح
+                    window.location.replace("./index.html");
                 } else {
                     errorMsg.innerText = data.message || "بيانات الدخول غير صحيحة";
                     errorMsg.style.display = 'block';
