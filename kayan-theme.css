@@ -1,0 +1,96 @@
+/* Kayan Store — professional visual system
+   Load after the existing styles in index.html:
+   <link rel="stylesheet" href="./kayan-theme.css">
+*/
+:root {
+  --bg-deep: #0b1220 !important;
+  --bg-card: #111c2f !important;
+  --bg-sidebar: #0d1728 !important;
+  --neon-orange: #f59e0b !important;
+  --neon-orange-glow: rgba(245, 158, 11, .24) !important;
+  --neon-cyan: #22c7b8 !important;
+  --neon-cyan-glow: rgba(34, 199, 184, .2) !important;
+  --text-light: #f8fafc !important;
+  --text-muted: #a7b2c3 !important;
+  --text-dim: #718096 !important;
+}
+
+* { scrollbar-width: thin; scrollbar-color: #34445d transparent; }
+body {
+  background: radial-gradient(circle at 78% -10%, rgba(245,158,11,.1), transparent 28%),
+              radial-gradient(circle at 0% 100%, rgba(34,199,184,.08), transparent 30%), var(--bg-deep) !important;
+}
+.sidebar {
+  width: 276px !important;
+  padding: 24px 14px !important;
+  border-left: 1px solid rgba(255,255,255,.08) !important;
+  background: rgba(13,23,40,.92) !important;
+  box-shadow: 18px 0 50px rgba(0,0,0,.18);
+  backdrop-filter: blur(18px);
+}
+.sidebar-brand { margin-bottom: 26px !important; }
+.brand-plaque { border: 1px solid rgba(255,255,255,.1); box-shadow: 0 12px 30px rgba(0,0,0,.25) !important; }
+.sidebar a {
+  margin: 5px 0; padding: 13px 16px !important; border: 1px solid transparent !important;
+  border-radius: 12px; font-size: 14px; color: #aeb9ca !important;
+}
+.sidebar a:hover, .sidebar a.active {
+  border-color: rgba(245,158,11,.18) !important;
+  background: linear-gradient(90deg, rgba(245,158,11,.18), rgba(245,158,11,.035)) !important;
+  box-shadow: inset 0 0 18px rgba(245,158,11,.035);
+}
+.sidebar a i { color: #8190a5; transition: .2s; }
+.sidebar a:hover i, .sidebar a.active i { color: var(--neon-orange); }
+.main-content { margin-right: 276px !important; padding: 32px !important; max-width: 1700px; }
+.main-content::before { content: 'لوحة التحكم'; display: block; color: #718096; font-size: 13px; margin-bottom: 8px; }
+.card, .stat-card {
+  border: 1px solid rgba(148,163,184,.13) !important;
+  background: linear-gradient(145deg, rgba(24,39,62,.94), rgba(14,25,43,.94)) !important;
+  box-shadow: 0 18px 45px rgba(0,0,0,.2), inset 0 1px rgba(255,255,255,.045) !important;
+}
+.card { border-radius: 18px !important; }
+.stat-card {
+  position: relative; overflow: hidden; min-height: 108px; padding: 20px 16px !important;
+  border-radius: 16px !important; transition: transform .2s, border-color .2s;
+}
+.stat-card::after { content: ''; position: absolute; width: 90px; height: 90px; left: -28px; bottom: -42px; border-radius: 50%; background: rgba(245,158,11,.08); }
+.stat-card:hover { transform: translateY(-3px); border-color: rgba(245,158,11,.35) !important; }
+.stat-card h6 { position: relative; z-index: 1; color: #a7b2c3 !important; }
+.stat-card h4 { position: relative; z-index: 1; font-size: 22px; text-shadow: none !important; }
+.neon-title { color: #f8fafc !important; text-shadow: none !important; letter-spacing: -.3px; }
+.neon-title i { color: var(--neon-orange); margin-left: 8px; }
+.form-control, .form-select {
+  border-color: rgba(148,163,184,.2) !important; background: rgba(7,15,28,.55) !important;
+  min-height: 44px; box-shadow: none !important;
+}
+.form-control:focus, .form-select:focus { border-color: var(--neon-orange) !important; box-shadow: 0 0 0 4px rgba(245,158,11,.1) !important; }
+.table-responsive { border-radius: 12px; }
+.table-pos { --bs-table-bg: transparent; --bs-table-color: #e5e7eb; }
+.table-pos th { padding: 15px !important; color: #fbbf24 !important; border-bottom: 1px solid rgba(245,158,11,.35) !important; background: rgba(255,255,255,.035) !important; }
+.table-pos td { padding: 14px 12px !important; border-color: rgba(148,163,184,.1) !important; }
+.table-pos tbody tr:hover { background: rgba(245,158,11,.07) !important; }
+.btn-3d { border-radius: 11px !important; box-shadow: 0 8px 18px rgba(0,0,0,.18) !important; }
+.btn-pos-action { background: linear-gradient(135deg,#fbbf24,#d97706) !important; color: #241500 !important; }
+.btn-success-3d { background: linear-gradient(135deg,#2dd4bf,#0f9f91) !important; }
+.modal-content { border: 1px solid rgba(245,158,11,.35) !important; border-radius: 18px !important; box-shadow: 0 24px 80px rgba(0,0,0,.5) !important; overflow: hidden; }
+.modal-header { padding: 20px 24px !important; }
+.sync-dot { width: 8px !important; height: 8px !important; }
+@media (max-width: 992px) {
+  .sidebar { width: 84px !important; padding: 18px 10px !important; }
+  .sidebar a { padding: 14px 8px !important; text-align: center; font-size: 0; }
+  .sidebar a i { margin: 0 !important; font-size: 17px; }
+  .sidebar-brand img { width: 52px !important; }
+  .sidebar p, .sidebar .brand-plaque { font-size: 0; }
+  .main-content { margin-right: 84px !important; padding: 22px !important; }
+  .pos-grid { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 576px) {
+  .sidebar { width: 64px !important; }
+  .main-content { margin-right: 64px !important; padding: 14px !important; }
+  .main-content::before { display: none; }
+  .card { padding: 16px !important; }
+  .stat-card { min-height: 92px; padding: 14px 8px !important; }
+  .stat-card h6 { font-size: 11px !important; }
+  .stat-card h4 { font-size: 16px !important; }
+  h2.neon-title { font-size: 20px; }
+}
