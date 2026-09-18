@@ -3,80 +3,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول - كيان ستور</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#101828">
+    <meta name="description" content="تسجيل الدخول إلى نظام كيان ستور لإدارة المبيعات والمخزون">
+    <title>تسجيل الدخول | كيان ستور</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { font-family: 'Cairo', sans-serif; background-color: #1a252f; height: 100vh; display: flex; align-items: center; justify-content: center; }
-        .login-card { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 100%; max-width: 400px; text-align: center; }
-        .login-card h2 { color: #2c3e50; font-weight: 800; margin-bottom: 30px; }
-        .btn-custom { background-color: #18bc9c; color: white; font-weight: 600; border-radius: 8px; padding: 12px; }
-        .btn-custom:hover { background-color: #128f76; color: white;}
+        :root {
+            --navy: #101828;
+            --navy-light: #17243a;
+            --orange: #f59e0b;
+            --orange-light: #fbbf24;
+            --muted: #98a2b3;
+            --line: rgba(255, 255, 255, .1);
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            min-height: 100vh;
+            margin: 0;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            color: #fff;
+            font-family: 'Cairo', sans-serif;
+            background: #0b1220;
+            overflow-x: hidden;
+        }
+        body::before, body::after {
+            content: '';
+            position: fixed;
+            z-index: -1;
+            width: 430px;
+            height: 430px;
+            border-radius: 50%;
+            filter: blur(8px);
+            opacity: .18;
+            pointer-events: none;
+        }
+        body::before { top: -180px; right: -130px; background: var(--orange); }
+        body::after { bottom: -220px; left: -130px; background: #2563eb; }
+
+        .shell {
+            width: min(100%, 960px);
+            min-height: 600px;
+            display: grid;
+            grid-template-columns: 1.05fr .95fr;
+            direction: ltr;
+            overflow: hidden;
+            border: 1px solid var(--line);
+            border-radius: 28px;
+            background: rgba(16, 24, 40, .82);
+            box-shadow: 0 28px 90px rgba(0, 0, 0, .42), inset 0 1px rgba(255,255,255,.08);
+            backdrop-filter: blur(18px);
+        }
+        .intro {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 52px;
+            direction: rtl;
+            background: linear-gradient(145deg, rgba(245,158,11,.98), rgba(180,83,9,.96));
+            isolation: isolate;
+        }
+        .intro::after {
+            content: '';
+            position: absolute;
+            inset: auto -100px -160px auto;
+            width: 390px;
+            height: 390px;
+            border: 56px solid rgba(255,255,255,.1);
+            border-radius: 50%;
+            z-index: -1;
+        }
+        .brand { display: flex; align-items: center; gap: 13px; font-size: 1.35rem; font-weight: 800; }
+        .brand-mark {
+            display: grid;
+            place-items: center;
+            width: 48px;
+            height: 48px;
+            color: var(--orange);
+            border-radius: 15px;
+            background: #fff;
+            box-shadow: 0 10px 25px rgba(79, 44, 0, .2);
+        }
+        .intro h1 { max-width: 390px; margin: 0 0 18px; font-size: clamp(2rem, 4vw, 3.3rem); line-height: 1.25; font-weight: 800; }
+        .intro p { max-width: 390px; margin: 0; color: rgba(255,255,255,.86); line-height: 2; }
+        .features { display: grid; gap: 13px; margin-top: 28px; }
+        .feature { display: flex; align-items: center; gap: 12px; color: rgba(255,255,255,.9); font-size: .92rem; }
+        .feature i { width: 30px; text-align: center; color: #fff; }
+        .form-panel { display: flex; align-items: center; padding: 52px; direction: rtl; background: rgba(16,24,40,.72); }
+        .form-wrap { width: 100%; max-width: 360px; margin: auto; }
+        .form-wrap h2 { margin: 0 0 8px; font-size: 1.85rem; font-weight: 800; }
+        .subtitle { margin: 0 0 32px; color: var(--muted); font-size: .92rem; }
+        .field { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 8px; color: #e4e7ec; font-size: .88rem; font-weight: 600; }
+        .input-wrap { position: relative; }
+        .input-wrap i { position: absolute; top: 50%; right: 16px; color: var(--muted); transform: translateY(-50%); }
+        input {
+            width: 100%;
+            height: 54px;
+            padding: 0 46px 0 16px;
+            color: #fff;
+            outline: none;
+            border: 1px solid rgba(152,162,179,.28);
+            border-radius: 13px;
+            background: rgba(255,255,255,.055);
+            font: inherit;
+            transition: .2s ease;
+        }
+        input::placeholder { color: #667085; }
+        input:focus { border-color: var(--orange); background: rgba(255,255,255,.08); box-shadow: 0 0 0 4px rgba(245,158,11,.13); }
+        .submit {
+            width: 100%;
+            height: 56px;
+            margin-top: 8px;
+            color: #261500;
+            border: 0;
+            border-radius: 13px;
+            background: linear-gradient(135deg, var(--orange-light), var(--orange));
+            box-shadow: 0 12px 25px rgba(245,158,11,.2);
+            cursor: pointer;
+            font: inherit;
+            font-weight: 800;
+            transition: .2s ease;
+        }
+        .submit:hover { transform: translateY(-2px); box-shadow: 0 16px 30px rgba(245,158,11,.3); }
+        .submit:disabled { cursor: wait; opacity: .7; transform: none; }
+        #errorMsg { display: none; padding: 12px 14px; margin-bottom: 18px; color: #fecaca; border: 1px solid rgba(248,113,113,.3); border-radius: 10px; background: rgba(127,29,29,.25); font-size: .84rem; }
+        .copyright { margin-top: 30px; color: #667085; text-align: center; font-size: .78rem; }
+        @media (max-width: 760px) {
+            body { padding: 14px; }
+            .shell { display: block; min-height: auto; border-radius: 22px; }
+            .intro { min-height: 280px; padding: 30px 26px; }
+            .intro h1 { margin-top: 42px; font-size: 2rem; }
+            .intro p, .features { display: none; }
+            .form-panel { padding: 34px 26px 30px; }
+        }
     </style>
 </head>
 <body>
-    <div class="login-card">
-        <i class="fas fa-store fa-3x mb-3" style="color: #18bc9c;"></i>
-        <h2>كيان ستور</h2>
-        <div class="alert alert-danger" id="errorMsg" style="display: none; font-size: 14px;"></div>
-        
-        <form id="loginForm">
-            <div class="mb-3 text-start">
-                <label class="form-label fw-bold">اسم المستخدم</label>
-                <input type="text" class="form-control form-control-lg" id="username" required>
+    <main class="shell">
+        <section class="intro" aria-label="معلومات كيان ستور">
+            <div class="brand"><span class="brand-mark"><i class="fa-solid fa-store"></i></span> كيان ستور</div>
+            <div>
+                <h1>أدر متجرك بثقة وسهولة.</h1>
+                <p>منصة واحدة لإدارة المبيعات، المخزون، الفواتير والخزينة بواجهة واضحة وسريعة.</p>
+                <div class="features">
+                    <div class="feature"><i class="fa-solid fa-chart-line"></i><span>متابعة المبيعات والأداء لحظيًا</span></div>
+                    <div class="feature"><i class="fa-solid fa-boxes-stacked"></i><span>إدارة دقيقة للأصناف والمخزون</span></div>
+                    <div class="feature"><i class="fa-solid fa-shield-halved"></i><span>صلاحيات آمنة لكل مستخدم</span></div>
+                </div>
             </div>
-            <div class="mb-4 text-start">
-                <label class="form-label fw-bold">كلمة المرور</label>
-                <input type="password" class="form-control form-control-lg" id="password" required>
+        </section>
+        <section class="form-panel">
+            <div class="form-wrap">
+                <h2>مرحبًا بعودتك</h2>
+                <p class="subtitle">سجّل دخولك للوصول إلى لوحة التحكم</p>
+                <div id="errorMsg" role="alert"></div>
+                <form id="loginForm">
+                    <div class="field">
+                        <label for="username">اسم المستخدم</label>
+                        <div class="input-wrap"><i class="fa-regular fa-user"></i><input type="text" id="username" autocomplete="username" placeholder="أدخل اسم المستخدم" required></div>
+                    </div>
+                    <div class="field">
+                        <label for="password">كلمة المرور</label>
+                        <div class="input-wrap"><i class="fa-solid fa-lock"></i><input type="password" id="password" autocomplete="current-password" placeholder="أدخل كلمة المرور" required></div>
+                    </div>
+                    <button type="submit" class="submit" id="loginBtn">تسجيل الدخول <i class="fa-solid fa-arrow-left"></i></button>
+                </form>
+                <p class="copyright">© 2026 كيان ستور — نظام إدارة المتجر</p>
             </div>
-            <button type="submit" class="btn btn-custom w-100 fs-5" id="loginBtn">دخول <i class="fas fa-sign-in-alt"></i></button>
-        </form>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        </section>
+    </main>
     <script>
-        // رابط جوجل سكريبت بتاعك
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzFgQBh8uJ-RZNegq5hwqhqDJ3oAAjdNJOC79W0VnBVrfhROo5eyVAodiqXcWgo6PZe/exec";
-
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            let user = document.getElementById('username').value;
-            let pass = document.getElementById('password').value;
-            let btn = document.getElementById('loginBtn');
-            let errorMsg = document.getElementById('errorMsg');
-
+        const form = document.getElementById('loginForm');
+        const btn = document.getElementById('loginBtn');
+        const errorMsg = document.getElementById('errorMsg');
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحقق...';
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري التحقق...';
             errorMsg.style.display = 'none';
-
-            fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: "login", username: user, password: pass })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if(data.success) {
-                    // تنظيف البيانات وحفظها بشكل قاطع
-                    localStorage.setItem('kayan_user', String(data.username).trim());
-                    localStorage.setItem('kayan_role', String(data.role).trim());
-                    localStorage.setItem('kayan_permissions', String(data.permissions || '').trim());
-                    
-                    // تحويل فوري من غير انتظار - السرعة أهم من مؤثر النجاح
-                    window.location.replace("./index.html");
-                } else {
-                    errorMsg.innerText = data.message || "بيانات الدخول غير صحيحة";
-                    errorMsg.style.display = 'block';
-                    btn.disabled = false;
-                    btn.innerHTML = 'دخول <i class="fas fa-sign-in-alt"></i>';
-                }
-            })
-            .catch(err => {
-                errorMsg.innerText = "حدث خطأ في الاتصال بالسيرفر، تأكد من الإنترنت.";
+            try {
+                const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'login', username: username.value.trim(), password: password.value }) });
+                const data = await response.json();
+                if (!data.success) throw new Error(data.message || 'بيانات الدخول غير صحيحة');
+                localStorage.setItem('kayan_user', String(data.username).trim());
+                localStorage.setItem('kayan_role', String(data.role).trim());
+                localStorage.setItem('kayan_permissions', String(data.permissions || '').trim());
+                window.location.replace('./index.html');
+            } catch (error) {
+                errorMsg.textContent = error.message || 'حدث خطأ في الاتصال بالسيرفر، تأكد من الإنترنت.';
                 errorMsg.style.display = 'block';
                 btn.disabled = false;
-                btn.innerHTML = 'دخول <i class="fas fa-sign-in-alt"></i>';
-            });
+                btn.innerHTML = 'تسجيل الدخول <i class="fa-solid fa-arrow-left"></i>';
+            }
         });
     </script>
 </body>
